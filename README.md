@@ -1,16 +1,63 @@
-# priorx / cts-mock
-
-A new Flutter project.
-
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Patient
+   ↓
+Doctor / Healthcare Provider
+   ↓
+Medical Procedure / Medication Requested
+   ↓
+Prior Authorization Request
+   ↓
+┌─────────────────────────────┐
+│ Collect Clinical Information│
+│ - Diagnosis                 │
+│ - Procedure                │
+│ - Medical history          │
+│ - Previous treatments      │
+│ - Clinical documents       │
+└─────────────────────────────┘
+   ↓
+Eligibility & Policy Check
+   ↓
+Medical Necessity Evaluation
+   ↓
+Rules / AI Decision Engine
+   ↓
+   ┌───────────────┬───────────────┐
+   ↓               ↓
+APPROVED         DENIED
+   ↓               ↓
+Treatment        ┌─────────────────────┐
+Authorized       │ APPEAL SYSTEM       │
+                 └─────────────────────┘
+                         ↓
+                  Identify denial reason
+                         ↓
+                  Check appeal eligibility
+                         ↓
+                  Identify missing evidence
+                         ↓
+                  Request additional
+                  clinical documentation
+                         ↓
+                  Generate / prepare
+                  appeal case
+                         ↓
+                  Appeal Prediction Model
+                         ↓
+             ┌───────────┴───────────┐
+             ↓                       ↓
+       High chance               Low chance
+       of success                of success
+             ↓                       ↓
+      Human review /           Human review /
+      submit appeal            reconsideration
+             ↓                       ↓
+             └───────────┬───────────┘
+                         ↓
+                  Payer Appeal Review
+                         ↓
+                 ┌───────┴────────┐
+                 ↓                ↓
+             APPROVED           REJECTED
+                 ↓                ↓
+          Treatment proceeds   Further appeal /
+                               alternative treatment
