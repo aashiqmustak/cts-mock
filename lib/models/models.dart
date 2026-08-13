@@ -246,6 +246,9 @@ class Patient {
   final int pendingAuthorizations;
   final DateTime? lastVisit;
   final String? mrn;            // Medical Record Number
+  final String? guardianName;
+  final String? guardianPhone;
+  final String? guardianRelationship;
 
   const Patient({
     required this.id,
@@ -267,6 +270,9 @@ class Patient {
     this.pendingAuthorizations = 0,
     this.lastVisit,
     this.mrn,
+    this.guardianName,
+    this.guardianPhone,
+    this.guardianRelationship,
   });
 }
 
@@ -286,6 +292,7 @@ class Doctor {
   final double avgProcessingTimeMs;
   final String? cmsSpecialtyCode;
   final bool isActive;
+  final String? availability;
 
   const Doctor({
     required this.id,
@@ -302,6 +309,7 @@ class Doctor {
     this.avgProcessingTimeMs = 0.0,
     this.cmsSpecialtyCode,
     this.isActive = true,
+    this.availability,
   });
 }
 
@@ -534,3 +542,38 @@ class DashboardStats {
     required this.fraudFlagged,
   });
 }
+
+class PatientAppointment {
+  final String id;
+  final String patientId;
+  final String doctorName;
+  final DateTime dateTime;
+  final String reason;
+
+  const PatientAppointment({
+    required this.id,
+    required this.patientId,
+    required this.doctorName,
+    required this.dateTime,
+    required this.reason,
+  });
+}
+
+class PatientSurgery {
+  final String id;
+  final String patientId;
+  final String surgeonName;
+  final String operationTheatre;
+  final DateTime dateTime;
+  final String procedure;
+
+  const PatientSurgery({
+    required this.id,
+    required this.patientId,
+    required this.surgeonName,
+    required this.operationTheatre,
+    required this.dateTime,
+    required this.procedure,
+  });
+}
+

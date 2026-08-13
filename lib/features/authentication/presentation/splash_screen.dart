@@ -54,7 +54,7 @@ class _SplashScreenState extends State<SplashScreen> {
               const SizedBox(height: 24),
 
               Text(
-                'MediAuth AI',
+                'PriorX',
                 style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.w800,

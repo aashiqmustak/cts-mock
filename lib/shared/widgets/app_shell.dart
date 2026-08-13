@@ -457,15 +457,16 @@ class _SidebarLogo extends StatelessWidget {
       height: 64,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
+        mainAxisAlignment: isExpanded ? MainAxisAlignment.start : MainAxisAlignment.center,
         children: [
           Container(
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              gradient: AppColors.primaryGradient,
+              color: AppColors.mockupTealLight,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.medical_services_rounded, color: Colors.white, size: 20),
+            child: const Icon(Icons.add_rounded, color: AppColors.mockupTeal, size: 22),
           ),
           if (isExpanded) ...[
             const SizedBox(width: 12),
@@ -475,9 +476,9 @@ class _SidebarLogo extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'MediAuth AI',
+                    'PriorX',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: AppColors.primary,
+                      color: AppColors.mockupDark,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -564,43 +565,53 @@ class _NavItemTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
       child: Tooltip(
         message: isExpanded ? '' : item.label,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          borderRadius: BorderRadius.circular(12),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             padding: EdgeInsets.symmetric(
-              horizontal: isExpanded ? 12 : 14,
-              vertical: 10,
+              horizontal: isExpanded ? 12 : 0,
+              vertical: isExpanded ? 10 : 0,
             ),
+            width: isExpanded ? double.infinity : 40,
+            height: isExpanded ? null : 40,
             decoration: BoxDecoration(
-              color: isActive ? AppColors.primarySurface : Colors.transparent,
-              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+              color: isActive
+                  ? (isExpanded ? AppColors.mockupTealLight : AppColors.mockupTeal)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Row(
-              children: [
-                Icon(
-                  isActive ? item.activeIcon : item.icon,
-                  size: 20,
-                  color: isActive ? AppColors.primary : AppColors.neutral500,
-                ),
-                if (isExpanded) ...[
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      item.label,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: isActive ? AppColors.primary : AppColors.textSecondary,
-                        fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+            child: isExpanded
+                ? Row(
+                    children: [
+                      Icon(
+                        isActive ? item.activeIcon : item.icon,
+                        size: 20,
+                        color: isActive ? AppColors.mockupTeal : AppColors.neutral500,
                       ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          item.label,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: isActive ? AppColors.mockupDark : AppColors.textSecondary,
+                            fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : Center(
+                    child: Icon(
+                      isActive ? item.activeIcon : item.icon,
+                      size: 20,
+                      color: isActive ? Colors.white : AppColors.neutral400,
                     ),
                   ),
-                ],
-              ],
-            ),
           ),
         ),
       ),
@@ -873,7 +884,7 @@ String _getTitleForRoute(String route) {
   if (route.startsWith(RouteNames.settings))      return 'Settings';
   if (route.startsWith(RouteNames.profile))       return 'Profile';
   if (route.startsWith(RouteNames.notifications)) return 'Notifications';
-  return 'MediAuth AI';
+  return 'PriorX';
 }
 
 // ─── Unread notification count provider ──────────────────────────────────────

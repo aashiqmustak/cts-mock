@@ -7,7 +7,8 @@ enum UserRole {
   doctor,
   insuranceReviewer,
   hospitalStaff,
-  patient;
+  patient,
+  adminHospital;
 
   String get displayName {
     switch (this) {
@@ -16,6 +17,7 @@ enum UserRole {
       case UserRole.insuranceReviewer:return 'Insurance Reviewer';
       case UserRole.hospitalStaff:    return 'Hospital Staff';
       case UserRole.patient:          return 'Patient';
+      case UserRole.adminHospital:    return 'Hospital Admin';
     }
   }
 
@@ -26,6 +28,7 @@ enum UserRole {
       case UserRole.insuranceReviewer:return 'Authorization review and approval workflow';
       case UserRole.hospitalStaff:    return 'Facility-scoped operations and record management';
       case UserRole.patient:          return 'Own case tracking and document submission';
+      case UserRole.adminHospital:    return 'Facility-level operations, scheduling, and logs';
     }
   }
 
@@ -36,6 +39,7 @@ enum UserRole {
       case UserRole.insuranceReviewer:return AppColors.warning;
       case UserRole.hospitalStaff:    return AppColors.success;
       case UserRole.patient:          return AppColors.secondary;
+      case UserRole.adminHospital:    return AppColors.accent;
     }
   }
 
@@ -46,6 +50,7 @@ enum UserRole {
       case UserRole.insuranceReviewer:return Icons.policy_rounded;
       case UserRole.hospitalStaff:    return Icons.local_hospital_rounded;
       case UserRole.patient:          return Icons.person_rounded;
+      case UserRole.adminHospital:    return Icons.business_center_rounded;
     }
   }
 }
@@ -189,6 +194,23 @@ const Map<UserRole, Set<Permission>> rolePermissions = {
     Permission.viewProfile,
     Permission.viewNotifications,
     Permission.viewInsuranceClaims,
+  },
+  UserRole.adminHospital: {
+    Permission.viewFacilityDashboard,
+    Permission.createAuthorizationRequest,
+    Permission.viewOwnCases,
+    Permission.viewFullAiReasoning,
+    Permission.fileAppeal,
+    Permission.trackAppeal,
+    Permission.viewFacilityAnalytics,
+    Permission.uploadDocuments,
+    Permission.viewSettings,
+    Permission.manageSettings,
+    Permission.viewProfile,
+    Permission.viewNotifications,
+    Permission.viewInsuranceClaims,
+    Permission.manageFhirIntegrations,
+    Permission.viewAllAuditLogs,
   },
 };
 

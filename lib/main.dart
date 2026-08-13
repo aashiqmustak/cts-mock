@@ -5,18 +5,18 @@ import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 
 void main() {
-  runApp(const ProviderScope(child: MediAuthApp()));
+  runApp(const ProviderScope(child: PriorXApp()));
 }
 
-class MediAuthApp extends ConsumerWidget {
-  const MediAuthApp({super.key});
+class PriorXApp extends ConsumerWidget {
+  const PriorXApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
-      title: 'MediAuth AI',
+      title: 'PriorX',
       debugShowCheckedModeBanner: false, 
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,

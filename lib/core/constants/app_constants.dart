@@ -4,10 +4,10 @@ class AppConstants {
   AppConstants._();
 
   // ─── App Identity ─────────────────────────────────────────────────────────
-  static const String appName = 'MediAuth AI';
+  static const String appName = 'PriorX';
   static const String appTagline = 'AI-Powered Prior Authorization Platform';
   static const String appVersion = '1.0.0';
-  static const String companyName = 'MediAuth Systems, Inc.';
+  static const String companyName = 'PriorX Systems, Inc.';
 
   // ─── SLA & Performance Targets ────────────────────────────────────────────
   /// Decision must complete within 5 seconds
@@ -76,6 +76,7 @@ class AppConstants {
     {'email': 'reviewer@mediauth.ai', 'password': 'Review@123',  'role': 'insuranceReviewer', 'name': 'Sarah Williams'},
     {'email': 'staff@mediauth.ai',    'password': 'Staff@123',   'role': 'hospitalStaff',     'name': 'James Rodriguez'},
     {'email': 'patient@mediauth.ai',  'password': 'Patient@123', 'role': 'patient',           'name': 'Emily Thompson'},
+    {'email': 'hospital_admin@mediauth.ai', 'password': 'Admin@123', 'role': 'adminHospital', 'name': 'Sarah Jenkins'},
   ];
 
   // ─── Fraud Anomaly Thresholds ─────────────────────────────────────────────

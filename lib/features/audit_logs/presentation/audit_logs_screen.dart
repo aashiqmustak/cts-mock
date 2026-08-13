@@ -6,12 +6,56 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../repositories/mock/mock_data_repository.dart';
 
-class AuditLogsScreen extends ConsumerWidget {
+import '../../../core/providers/auth_provider.dart';
+import '../../../models/user_role.dart';
+import '../../../models/models.dart';
+
+class AuditLogsScreen extends ConsumerStatefulWidget {
   const AuditLogsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final logs = MockDataRepository.instance.auditLogs;
+  ConsumerState<AuditLogsScreen> createState() => _AuditLogsScreenState();
+}
+
+class _AuditLogsScreenState extends ConsumerState<AuditLogsScreen> {
+  int _selectedTab = 0; // 0 = Hospital Operations, 1 = Prior Auth History
+
+  @override
+  Widget build(BuildContext context) {
+    final user = ref.watch(currentUserProvider);
+    final allLogs = MockDataRepository.instance.auditLogs;
+    
+    // Sort logs descending by timestamp
+    final sortedLogs = List<AuditLogEntry>.from(allLogs)
+      ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
+    // Filter logs based on role and tab selection
+    final filteredLogs = sortedLogs.where((log) {
+      final isHospitalOp = log.action.startsWith('patient.') ||
+          log.action.startsWith('doctor.') ||
+          log.action.startsWith('surgery.') ||
+          log.action.startsWith('appointment.') ||
+          log.action.startsWith('guardian.') ||
+          log.action.startsWith('insurance.') ||
+          log.action.startsWith('fhir.') ||
+          (log.action.startsWith('user.') && log.actorRole != 'Insurance Reviewer');
+
+      final isPriorAuth = log.action.startsWith('authorization.') ||
+          log.action.startsWith('appeal.');
+
+      if (user?.role == UserRole.adminHospital || user?.role == UserRole.administrator) {
+        if (_selectedTab == 0) {
+          return isHospitalOp;
+        } else {
+          return isPriorAuth;
+        }
+      }
+      
+      // Default: show everything for other roles
+      return true;
+    }).toList();
+
+    final showTabs = user?.role == UserRole.adminHospital || user?.role == UserRole.administrator;
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -60,25 +104,88 @@ class AuditLogsScreen extends ConsumerWidget {
           ]),
         ).animate(delay: 100.ms).fadeIn(),
 
+        if (showTabs) ...[
+          const SizedBox(height: 16),
+          // Custom Tab Toggle
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: AppColors.neutral100,
+              borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildTabButton(0, 'Hospital Operations', PhosphorIconsRegular.hospital),
+                _buildTabButton(1, 'Prior Auth History', PhosphorIconsRegular.clipboardText),
+              ],
+            ),
+          ).animate(delay: 150.ms).fadeIn(),
+        ],
+
         const SizedBox(height: 20),
 
         Expanded(
-          child: ListView.separated(
-            itemCount: logs.length,
-            separatorBuilder: (_, i) => Column(children: [
-              // Hash link connector
-              Center(
-                child: Container(
-                  width: 2, height: 20,
-                  color: AppColors.neutral200,
+          child: filteredLogs.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(PhosphorIconsRegular.listChecks, size: 48, color: AppColors.textTertiary),
+                      const SizedBox(height: 12),
+                      Text('No logs found for this filter',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary)),
+                    ],
+                  ),
+                )
+              : ListView.separated(
+                  itemCount: filteredLogs.length,
+                  separatorBuilder: (_, i) => Column(children: [
+                    // Hash link connector
+                    Center(
+                      child: Container(
+                        width: 2, height: 16,
+                        color: AppColors.neutral200,
+                      ),
+                    ),
+                  ]),
+                  itemBuilder: (ctx, i) => _AuditLogRow(entry: filteredLogs[i], index: i)
+                      .animate(key: ValueKey(filteredLogs[i].id), delay: Duration(milliseconds: 50 + i * 40))
+                      .fadeIn()
+                      .slideY(begin: 0.05),
                 ),
-              ),
-            ]),
-            itemBuilder: (ctx, i) => _AuditLogRow(entry: logs[i], index: i)
-                .animate(delay: Duration(milliseconds: 50 + i * 40)).fadeIn().slideY(begin: 0.05),
-          ),
         ),
       ]),
+    );
+  }
+
+  Widget _buildTabButton(int index, String label, IconData icon) {
+    final isSelected = _selectedTab == index;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedTab = index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.surface : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          boxShadow: isSelected ? AppTheme.shadowSm : null,
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: isSelected ? AppColors.primary : AppColors.textSecondary),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -215,6 +322,12 @@ class _AuditLogRowState extends State<_AuditLogRow> {
     if (action.contains('appeal')) return Icons.gavel_rounded;
     if (action.contains('login')) return Icons.login_rounded;
     if (action.contains('fhir')) return Icons.sync_rounded;
+    if (action.contains('patient.')) return Icons.person_add_rounded;
+    if (action.contains('doctor.')) return Icons.medical_services_rounded;
+    if (action.contains('surgery.')) return Icons.personal_injury_rounded;
+    if (action.contains('appointment.')) return Icons.event_rounded;
+    if (action.contains('guardian.')) return Icons.family_restroom_rounded;
+    if (action.contains('insurance.')) return Icons.verified_user_rounded;
     return Icons.info_rounded;
   }
 

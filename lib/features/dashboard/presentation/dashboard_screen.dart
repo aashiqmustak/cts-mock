@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -14,21 +13,8 @@ import '../../../models/models.dart';
 import '../../../models/user_role.dart';
 import '../../../repositories/mock/mock_data_repository.dart';
 import '../../../core/utils/platform_helper.dart';
-
-// ─── Dashboard Providers ──────────────────────────────────────────────────────
 import '../../../core/providers/authorizations_provider.dart';
-
-final approvalTrendProvider = Provider<List<Map<String, dynamic>>>((ref) {
-  return MockDataRepository.instance.approvalTrend;
-});
-
-final recentAuthsProvider = Provider<List<AuthorizationRequest>>((ref) {
-  final auths = ref.watch(authorizationsProvider);
-  return auths.take(5).toList();
-});
-
-// Simulated live SLA percentage that ticks upward
-final liveSlaProvider = StateProvider<double>((ref) => 0.971);
+import '../../../core/utils/patient_portal_helper.dart';
 
 // ─── Dashboard Screen ─────────────────────────────────────────────────────────
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -40,586 +26,1890 @@ class DashboardScreen extends ConsumerStatefulWidget {
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
-  void initState() {
-    super.initState();
-    // Simulate live updates
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
-        ref.read(liveSlaProvider.notifier).state = 0.974;
-      }
-    });
+  Widget build(BuildContext context) {
+    final user = ref.watch(currentUserProvider);
+    if (user?.role == UserRole.patient) {
+      return _buildPatientPortalDashboard(context);
+    }
+
+    final isMobile = MediaQuery.of(context).size.width < 900;
+    
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: isMobile ? _buildMobileDashboard(context) : _buildDesktopDashboard(context),
+      ),
+    );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final stats   = ref.watch(dashboardStatsProvider);
-    final user    = ref.watch(currentUserProvider);
-    final isAdmin = user?.hasPermission(Permission.viewOrgWideDashboard) ?? false;
+  // ─── Desktop Dashboard (Mockup Left/Right Panels) ───────────────────────────
+  Widget _buildDesktopDashboard(BuildContext context) {
+    final user = ref.watch(currentUserProvider);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Main Left Content Column
+        Expanded(
+          flex: 7,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Top Header Row
+                Row(
+                  children: [
+                    // Search Bar
+                    Expanded(
+                      child: Container(
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: AppColors.neutral50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Row(
+                          children: [
+                            Icon(PhosphorIconsRegular.magnifyingGlass, color: Colors.grey.shade500, size: 20),
+                            const SizedBox(width: 12),
+                            Text(
+                              "Search anything here...",
+                              style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                    // Action Icons
+                    Stack(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: AppColors.neutral50,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.grey.shade200),
+                          ),
+                          child: Icon(PhosphorIconsRegular.bell, color: AppColors.mockupDark, size: 20),
+                        ),
+                        Positioned(
+                          right: 12,
+                          top: 12,
+                          child: Container(
+                            width: 6,
+                            height: 6,
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 16),
+                    // Profile Info
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 18,
+                          backgroundColor: AppColors.mockupPurpleLight,
+                          child: const Text(
+                            "RF",
+                            style: TextStyle(
+                              color: AppColors.mockupPurple,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              user?.name ?? 'Robert Fox',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.mockupDark),
+                            ),
+                            Text(
+                              user?.role.displayName ?? 'Surgeon',
+                              style: const TextStyle(fontSize: 10, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 32),
+                
+                // Welcome Banner
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              "Good morning, Dr.Robert!",
+                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.mockupDark,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            const Text(
+                              "☀️",
+                              style: TextStyle(fontSize: 22),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Access a summary of key metrics and patient care status.",
+                          style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                    // Export button
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: AppColors.mockupTeal,
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.mockupTeal.withOpacity(0.15),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(PhosphorIconsRegular.downloadSimple, color: Colors.white, size: 16),
+                          const SizedBox(width: 8),
+                          Text(
+                            "Export data  .xls",
+                            style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 28),
+
+                // Stat Cards Row (Total Patients & Total Appointments)
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildDesktopStatCard(
+                        title: "Total patients",
+                        value: "58",
+                        trend: "+13%",
+                        trendColor: AppColors.mockupTeal,
+                        isUp: true,
+                        sparkHeights: [8, 12, 6, 18, 22, 10, 15, 28, 20, 25, 14],
+                        trendMessage: "Patients coming increased by 13%\nin last 7 days",
+                      ),
+                    ),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: _buildDesktopStatCard(
+                        title: "Total appointments",
+                        value: "340",
+                        trend: "-5%",
+                        trendColor: Colors.red.shade400,
+                        isUp: false,
+                        sparkHeights: [25, 20, 18, 22, 14, 12, 10, 8, 6, 8, 4],
+                        trendMessage: "Decrease in appointments by 5%\nin the last 7 days",
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                // Consultations stacked bar chart
+                Container(
+                  height: 350,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.mockupCardBg,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.grey.shade100),
+                  ),
+                  child: _ConsultationsChart(),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Bottom row: Surgeries Performed & Satisfaction Rate
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        height: 220,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: AppColors.mockupCardBg,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.shade100),
+                        ),
+                        child: _buildSurgeriesPerformed(),
+                      ),
+                    ),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: Container(
+                        height: 220,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: AppColors.mockupCardBg,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.shade100),
+                        ),
+                        child: _buildSatisfactionRate(),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        // Divider line
+        Container(
+          width: 1,
+          color: Colors.grey.shade100,
+          height: double.infinity,
+        ),
+        // Right Panel (Calendar and Appointments List)
+        Container(
+          width: 320,
+          padding: const EdgeInsets.all(24),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _DesktopCalendar(),
+                const SizedBox(height: 20),
+                const Divider(),
+                const SizedBox(height: 20),
+                const Text(
+                  "Today's appointments",
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AppColors.mockupDark),
+                ),
+                const SizedBox(height: 16),
+                _buildAppointmentsList(),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ).animate().fadeIn(duration: 400.ms);
+  }
+
+  // ─── Stat Card Widget ───────────────────────────────────────────────────────
+  Widget _buildDesktopStatCard({
+    required String title,
+    required String value,
+    required String trend,
+    required Color trendColor,
+    required bool isUp,
+    required List<double> sparkHeights,
+    required String trendMessage,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.mockupCardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade100),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Welcome header
-          _DashboardHeader(user: user).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1),
-
-          const SizedBox(height: 16),
-
-          const _TaskFlowPreviewBanner(),
-
-          const SizedBox(height: 20),
-
-          // ── Stat Cards Row ────────────────────────────────────────────────
-          LayoutBuilder(builder: (ctx, constraints) {
-            final isMobile = isMobileLayout(ctx);
-            final cols = constraints.maxWidth > 900 ? 4 : 2;
-            final aspect = constraints.maxWidth > 900 ? 1.6 : (isMobile ? 1.3 : 1.4);
-            return GridView.count(
-              crossAxisCount: cols,
-              crossAxisSpacing: isMobile ? 12 : 16,
-              mainAxisSpacing: isMobile ? 12 : 16,
-              childAspectRatio: aspect,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              children: [
-                _StatCard(
-                  title: 'Approved Today',
-                  value: stats.approvedToday,
-                  subtitle: '+12% vs yesterday',
-                  icon: PhosphorIconsRegular.checkCircle,
-                  color: AppColors.success,
-                  gradient: AppColors.successGradient,
-                  delay: 0,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade200),
+                  borderRadius: BorderRadius.circular(6),
                 ),
-                _StatCard(
-                  title: 'Pending Review',
-                  value: stats.pendingCount,
-                  subtitle: '${stats.pendingCount} in queue',
-                  icon: PhosphorIconsRegular.clock,
-                  color: AppColors.warning,
-                  gradient: AppColors.warningGradient,
-                  delay: 100,
+                child: Row(
+                  children: [
+                    Icon(PhosphorIconsRegular.calendar, size: 12, color: Colors.grey.shade600),
+                    const SizedBox(width: 4),
+                    const Text("Week", style: TextStyle(fontSize: 10, color: Colors.grey)),
+                  ],
                 ),
-                _StatCard(
-                  title: 'Rejected Today',
-                  value: stats.rejectedToday,
-                  subtitle: 'Step therapy issues',
-                  icon: PhosphorIconsRegular.xCircle,
-                  color: AppColors.error,
-                  gradient: AppColors.errorGradient,
-                  delay: 200,
-                ),
-                _StatCard(
-                  title: 'AI Accuracy',
-                  value: null,
-                  valueStr: '${(stats.aiAccuracy * 100).toStringAsFixed(1)}%',
-                  subtitle: 'Target: 95%+',
-                  icon: PhosphorIconsRegular.brain,
-                  color: AppColors.accent,
-                  gradient: AppColors.aiGradient,
-                  delay: 300,
-                ),
-              ],
-            );
-          }),
-
-          const SizedBox(height: 20),
-
-          // ── SLA Ring + Quick Stats ────────────────────────────────────────
-          LayoutBuilder(builder: (ctx, constraints) {
-            final isWide = constraints.maxWidth > 700;
-            if (isWide) {
-              return Row(
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              // Value and trend indicator
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(flex: 2, child: _SlaRingCard()),
-                  const SizedBox(width: 16),
-                  Expanded(flex: 3, child: _QuickStatsCard(stats: stats)),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(
+                        value,
+                        style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: AppColors.mockupDark, letterSpacing: -1),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        trend,
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: trendColor),
+                      ),
+                      Icon(
+                        isUp ? Icons.arrow_drop_up_rounded : Icons.arrow_drop_down_rounded,
+                        color: trendColor,
+                        size: 16,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // mini spark bar and message Row
+                  Row(
+                    children: [
+                      _MiniBarChart(heights: sparkHeights),
+                      const SizedBox(width: 10),
+                      Text(
+                        trendMessage,
+                        style: TextStyle(fontSize: 10, color: Colors.grey.shade500, height: 1.2),
+                      ),
+                    ],
+                  ),
                 ],
-              );
-            }
-            return Column(
-              children: [_SlaRingCard(), const SizedBox(height: 16), _QuickStatsCard(stats: stats)],
-            );
-          }),
-
-          const SizedBox(height: 20),
-
-          // ── Charts Row ────────────────────────────────────────────────────
-          LayoutBuilder(builder: (ctx, constraints) {
-            final isWide = constraints.maxWidth > 900;
-            if (isWide) {
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(flex: 3, child: _ApprovalTrendChart()),
-                  const SizedBox(width: 16),
-                  Expanded(flex: 2, child: _DiseaseStatsChart()),
-                ],
-              );
-            }
-            return Column(children: [
-              _ApprovalTrendChart(),
-              const SizedBox(height: 16),
-              _DiseaseStatsChart(),
-            ]);
-          }),
-
-          const SizedBox(height: 20),
-
-          // ── Bottom Row: Recent Auths + Fraud Radar ────────────────────────
-          LayoutBuilder(builder: (ctx, constraints) {
-            final isWide = constraints.maxWidth > 900;
-            if (isWide) {
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(flex: 3, child: _RecentAuthorizationsCard()),
-                  const SizedBox(width: 16),
-                  Expanded(flex: 2, child: _FraudAnomalyCard()),
-                ],
-              );
-            }
-            return Column(children: [
-              _RecentAuthorizationsCard(),
-              const SizedBox(height: 16),
-              _FraudAnomalyCard(),
-            ]);
-          }),
-
-          const SizedBox(height: 20),
-
-          // ── FHIR Sync Health ──────────────────────────────────────────────
-          _FhirSyncHealthBar(),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
-}
 
-// ─── Dashboard Header ─────────────────────────────────────────────────────────
-class _DashboardHeader extends StatelessWidget {
-  final dynamic user;
-  const _DashboardHeader({required this.user});
-
-  @override
-  Widget build(BuildContext context) {
-    final hour = DateTime.now().hour;
-    final greeting = hour < 12 ? 'Good morning' : (hour < 17 ? 'Good afternoon' : 'Good evening');
-
-    return Row(
+  // ─── Surgeries Performed widget ──────────────────────────────────────────────
+  Widget _buildSurgeriesPerformed() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('$greeting, ${user?.name.split(' ').first ?? 'User'}',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.5,
-                  )),
-              const SizedBox(height: 4),
-              Text(
-                'Here\'s what\'s happening across your authorization pipeline today.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              "Surgeries performed",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade200),
+                borderRadius: BorderRadius.circular(6),
               ),
-            ],
-          ),
+              child: Row(
+                children: [
+                  Icon(PhosphorIconsRegular.calendar, size: 12, color: Colors.grey.shade600),
+                  const SizedBox(width: 4),
+                  const Text("Week", style: TextStyle(fontSize: 10, color: Colors.grey)),
+                ],
+              ),
+            ),
+          ],
         ),
-        // Live indicator
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: AppColors.successLight,
-            borderRadius: BorderRadius.circular(AppTheme.radiusFull),
-            border: Border.all(color: AppColors.success.withOpacity(0.3)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 8, height: 8,
-                decoration: const BoxDecoration(
-                  color: AppColors.success,
-                  shape: BoxShape.circle,
-                ),
-              ).animate(onPlay: (c) => c.repeat()).custom(
-                duration: 1200.ms,
-                builder: (ctx, v, child) => Opacity(opacity: 0.4 + v * 0.6, child: child),
+        const SizedBox(height: 12),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            const Text(
+              "24",
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.mockupDark),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              "-5%",
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red.shade400),
+            ),
+            Icon(Icons.arrow_drop_down_rounded, color: Colors.red.shade400, size: 16),
+          ],
+        ),
+        const Spacer(),
+        // Sparklines or grid columns for surgeries
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: List.generate(24, (index) {
+            final h = (index % 3 == 0) ? 22.0 : ((index % 2 == 0) ? 14.0 : 8.0);
+            return Container(
+              width: 4,
+              height: h,
+              decoration: BoxDecoration(
+                color: index < 16 ? AppColors.mockupPurple : AppColors.mockupPurple.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(2),
               ),
-              const SizedBox(width: 6),
-              Text('Live',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: AppColors.successDark,
-                    fontWeight: FontWeight.w700,
-                  )),
-            ],
+            );
+          }),
+        ),
+        const SizedBox(height: 12),
+        // Breakdown Row
+        Row(
+          children: [
+            Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.mockupPurple, shape: BoxShape.circle)),
+            const SizedBox(width: 6),
+            const Text("Elective", style: TextStyle(fontSize: 11, color: Colors.grey)),
+            const SizedBox(width: 8),
+            const Text("16", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.mockupDark)),
+            const SizedBox(width: 24),
+            Container(width: 8, height: 8, decoration: BoxDecoration(color: AppColors.mockupPurple.withOpacity(0.3), shape: BoxShape.circle)),
+            const SizedBox(width: 6),
+            const Text("Emergency", style: TextStyle(fontSize: 11, color: Colors.grey)),
+            const SizedBox(width: 8),
+            const Text("8", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.mockupDark)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // ─── Satisfaction Rate widget ───────────────────────────────────────────────
+  Widget _buildSatisfactionRate() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              "Satisfaction rate",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade200),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                children: [
+                  Icon(PhosphorIconsRegular.calendar, size: 12, color: Colors.grey.shade600),
+                  const SizedBox(width: 4),
+                  const Text("Week", style: TextStyle(fontSize: 10, color: Colors.grey)),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: const [
+            Text(
+              "92%",
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.mockupDark),
+            ),
+            SizedBox(width: 6),
+            Text(
+              "+1%",
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.mockupTeal),
+            ),
+            Icon(Icons.arrow_drop_up_rounded, color: AppColors.mockupTeal, size: 16),
+          ],
+        ),
+        const Spacer(),
+        // Bezier satisfaction rate visual
+        SizedBox(
+          height: 60,
+          width: double.infinity,
+          child: CustomPaint(
+            painter: _SatisfactionPainter(),
           ),
         ),
       ],
     );
   }
-}
 
-// ─── Stat Card ────────────────────────────────────────────────────────────────
-class _StatCard extends StatefulWidget {
-  final String title;
-  final int? value;
-  final String? valueStr;
-  final String subtitle;
-  final IconData icon;
-  final Color color;
-  final LinearGradient gradient;
-  final int delay;
+  // ─── Desktop Appointments List ──────────────────────────────────────────────
+  Widget _buildAppointmentsList() {
+    final list = [
+      {
+        'name': 'Dr. Leslie Alexander',
+        'specialty': 'Orthopedic surgeon',
+        'date': 'Mar 24',
+        'initials': 'LA',
+      },
+      {
+        'name': 'Dr. Jane Cooper',
+        'specialty': 'Anesthesiologist',
+        'date': 'Mar 24',
+        'initials': 'JC',
+      },
+      {
+        'name': 'Dr. Wade Warren',
+        'specialty': 'Physiotherapist',
+        'date': 'Mar 24',
+        'initials': 'WW',
+      },
+    ];
 
-  const _StatCard({
-    required this.title, this.value, this.valueStr,
-    required this.subtitle, required this.icon,
-    required this.color, required this.gradient, required this.delay,
-  });
-
-  @override
-  State<_StatCard> createState() => _StatCardState();
-}
-
-class _StatCardState extends State<_StatCard> with SingleTickerProviderStateMixin {
-  late AnimationController _ctrl;
-  late Animation<double> _anim;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: AppConstants.animCounter),
-    );
-    _anim = CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic);
-    Future.delayed(Duration(milliseconds: widget.delay), () {
-      if (mounted) _ctrl.forward();
-    });
-  }
-
-  @override
-  void dispose() { _ctrl.dispose(); super.dispose(); }
-
-  @override
-  Widget build(BuildContext context) {
-    final isMobile = isMobileLayout(context);
-    final cardPadding = isMobile ? 12.0 : 20.0;
-    final iconSize = isMobile ? 28.0 : 36.0;
-    final innerIconSize = isMobile ? 14.0 : 18.0;
-
-    return AnimatedBuilder(
-      animation: _anim,
-      builder: (ctx, _) {
-        return Container(
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-            border: Border.all(color: AppColors.border),
-            boxShadow: AppTheme.shadowSm,
-          ),
-          padding: EdgeInsets.all(cardPadding),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      children: list.map((item) => Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade100),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 16,
+              backgroundColor: AppColors.mockupPurpleLight,
+              child: Text(
+                item['initials']!,
+                style: const TextStyle(
+                  color: AppColors.mockupPurple,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Text(
-                      widget.title,
-                      style: (isMobile
-                          ? Theme.of(context).textTheme.labelSmall
-                          : Theme.of(context).textTheme.labelMedium)
-                          ?.copyWith(
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                  Text(
+                    item['name']!,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.mockupDark),
                   ),
-                  const SizedBox(width: 4),
-                  Container(
-                    width: iconSize,
-                    height: iconSize,
-                    decoration: BoxDecoration(
-                      gradient: widget.gradient,
-                      borderRadius: BorderRadius.circular(isMobile ? 8 : 10),
-                    ),
-                    child: Icon(widget.icon, size: innerIconSize, color: Colors.white),
+                  const SizedBox(height: 2),
+                  Text(
+                    item['specialty']!,
+                    style: const TextStyle(fontSize: 10, color: Colors.grey),
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
-              Text(
-                widget.valueStr ?? '${(widget.value! * _anim.value).round()}',
-                style: (isMobile
-                    ? Theme.of(context).textTheme.titleLarge
-                    : Theme.of(context).textTheme.headlineMedium)
-                    ?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
-                  letterSpacing: -0.5,
-                ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.neutral50,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.grey.shade100),
               ),
-              const SizedBox(height: 4),
-              Text(
-                widget.subtitle,
-                style: (isMobile
-                    ? Theme.of(context).textTheme.labelSmall
-                    : Theme.of(context).textTheme.bodySmall)
-                    ?.copyWith(
-                  color: widget.color,
-                  fontWeight: FontWeight.w600,
-                ),
-                overflow: TextOverflow.ellipsis,
+              child: Row(
+                children: [
+                  Icon(PhosphorIconsRegular.calendar, size: 10, color: Colors.grey.shade600),
+                  const SizedBox(width: 4),
+                  Text(
+                    item['date']!,
+                    style: const TextStyle(fontSize: 9, color: AppColors.mockupDark, fontWeight: FontWeight.bold),
+                  ),
+                ],
               ),
-            ],
-          ),
-        );
-      },
-    ).animate(delay: Duration(milliseconds: widget.delay))
-        .fadeIn(duration: 400.ms)
-        .slideY(begin: 0.15, duration: 400.ms, curve: Curves.easeOutCubic);
-  }
-}
-
-// ─── SLA Ring Gauge ───────────────────────────────────────────────────────────
-class _SlaRingCard extends ConsumerStatefulWidget {
-  @override
-  ConsumerState<_SlaRingCard> createState() => _SlaRingCardState();
-}
-
-class _SlaRingCardState extends ConsumerState<_SlaRingCard>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _ctrl;
-  late Animation<double> _anim;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1500));
-    _anim = CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic);
-    Future.delayed(const Duration(milliseconds: 400), () {
-      if (mounted) _ctrl.forward();
-    });
+            ),
+          ],
+        ),
+      )).toList(),
+    );
   }
 
-  @override
-  void dispose() { _ctrl.dispose(); super.dispose(); }
-
-  @override
-  Widget build(BuildContext context) {
-    final sla = ref.watch(liveSlaProvider);
-
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: AppColors.border),
-        boxShadow: AppTheme.shadowSm,
-      ),
+  // ─── Mobile Dashboard (Patient App style mockup) ───────────────────────────
+  Widget _buildMobileDashboard(BuildContext context) {
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Mobile Top Bar
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Row(
                 children: [
-                  Text('Decision SLA',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      )),
-                  Text('% within 5 seconds today',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
-                      )),
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: AppColors.mockupPurpleLight,
+                    child: const Text(
+                      "GS",
+                      style: TextStyle(
+                        color: AppColors.mockupPurple,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Good Morning",
+                        style: TextStyle(color: Colors.grey, fontSize: 11),
+                      ),
+                      Text(
+                        "Gwen Stacy",
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.mockupDark,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.successLight,
-                  borderRadius: BorderRadius.circular(AppTheme.radiusFull),
-                ),
-                child: Row(children: [
-                  Icon(PhosphorIconsRegular.lightning,
-                      size: 12, color: AppColors.success),
-                  const SizedBox(width: 4),
-                  Text('Live',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: AppColors.successDark,
-                        fontWeight: FontWeight.w600,
-                      )),
-                ]),
+              Row(
+                children: [
+                  // Bell
+                  Stack(
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: AppColors.neutral50,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Icon(PhosphorIconsRegular.bell, color: AppColors.mockupDark, size: 18),
+                      ),
+                      Positioned(
+                        right: 10,
+                        top: 10,
+                        child: Container(
+                          width: 5,
+                          height: 5,
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 8),
+                  // Menu
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppColors.neutral50,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Icon(PhosphorIconsRegular.list, color: AppColors.mockupDark, size: 18),
+                  ),
+                ],
               ),
             ],
           ),
 
           const SizedBox(height: 24),
 
-          Stack(
-            alignment: Alignment.center,
+          // Mood Slider Card
+          const _MoodSlider(),
+
+          const SizedBox(height: 24),
+
+          // Calendar Section Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              SizedBox(
-                width: 160, height: 160,
-                child: AnimatedBuilder(
-                  animation: _anim,
-                  builder: (ctx, _) => PieChart(
-                    PieChartData(
-                      startDegreeOffset: -90,
-                      sections: [
-                        PieChartSectionData(
-                          value: sla * 100 * _anim.value,
-                          color: AppColors.success,
-                          radius: 28,
-                          title: '',
-                        ),
-                        PieChartSectionData(
-                          value: (1 - sla * _anim.value) * 100,
-                          color: AppColors.neutral100,
-                          radius: 28,
-                          title: '',
-                        ),
-                      ],
-                      centerSpaceRadius: 52,
-                      sectionsSpace: 2,
-                    ),
-                  ),
-                ),
+              const Text(
+                "Calendar",
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppColors.mockupDark),
               ),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('${(sla * 100).toStringAsFixed(1)}%',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.success,
-                      )),
-                  Text('within SLA',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: AppColors.textSecondary,
-                      )),
-                ],
+              TextButton(
+                onPressed: () {},
+                child: const Text("View all >", style: TextStyle(color: AppColors.mockupTeal, fontSize: 12)),
               ),
             ],
+          ),
+
+          const SizedBox(height: 8),
+
+          // Horizontal scrollable date picker
+          _HorizontalDatePicker(),
+
+          const SizedBox(height: 24),
+
+          // Date Text Header
+          const Text(
+            "Wednesday, 24 March",
+            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.mockupDark),
           ),
 
           const SizedBox(height: 16),
 
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _SlaLegend(color: AppColors.success, label: 'Within SLA'),
-              const SizedBox(width: 16),
-              _SlaLegend(color: AppColors.neutral300, label: 'Exceeded'),
-            ],
-          ),
+          // Timed Appointments Timeline list
+          _TimelineAppointments(),
         ],
       ),
-    ).animate(delay: 200.ms).fadeIn().slideY(begin: 0.1);
+    ).animate().fadeIn(duration: 400.ms);
   }
-}
 
-class _SlaLegend extends StatelessWidget {
-  final Color color;
-  final String label;
-  const _SlaLegend({required this.color, required this.label});
+  // ─── Patient Portal Dashboard ──────────────────────────────────────────────
+  Widget _buildPatientPortalDashboard(BuildContext context) {
+    final patientName = 'Emily Thompson';
+    final allAuths = ref.watch(authorizationsProvider);
+    final allAppeals = MockDataRepository.instance.appeals
+        .where((a) => a.patientName.toLowerCase() == patientName.toLowerCase())
+        .toList();
+    final patientNotifs = MockDataRepository.instance.notifications;
 
-  @override
-  Widget build(BuildContext context) {
-    return Row(children: [
-      Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-      const SizedBox(width: 4),
-      Text(label, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.textSecondary)),
-    ]);
+    return Scaffold(
+      backgroundColor: AppColors.neutral50,
+      appBar: AppBar(
+        title: Row(
+          children: [
+            const Icon(PhosphorIconsRegular.pulse, color: AppColors.primary, size: 24),
+            const SizedBox(width: 8),
+            Text(
+              'PriorX Patient Portal',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ),
+          ],
+        ),
+        actions: [
+          CircleAvatar(
+            radius: 16,
+            backgroundColor: AppColors.primary.withOpacity(0.1),
+            child: const Text('ET', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12)),
+          ),
+          const SizedBox(width: 16),
+        ],
+        backgroundColor: Colors.white,
+        elevation: 0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(color: AppColors.border, height: 1),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Left main section
+            Expanded(
+              flex: 3,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Welcome Card
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      gradient: AppColors.primaryGradient,
+                      borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+                      boxShadow: AppTheme.shadowMd,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Welcome back, Emily!',
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'UnitedHealthcare PPO Plus · Member ID: UHC-998877',
+                          style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Manage your healthcare decisions, review prior authorizations, track active appeals, and securely upload clinical files.',
+                          style: TextStyle(color: Colors.white70, height: 1.4),
+                        ),
+                      ],
+                    ),
+                  ).animate().fadeIn().slideY(begin: 0.05),
+
+                  const SizedBox(height: 28),
+
+                  // Section Title
+                  Text(
+                    'Your Prior Authorizations & Coverages',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 12),
+
+                  if (allAuths.isEmpty)
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Center(child: Text('No active prior authorization requests found.')),
+                      ),
+                    )
+                  else
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: allAuths.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (ctx, idx) => _buildPatientAuthCard(allAuths[idx]),
+                    ).animate(delay: 100.ms).fadeIn(),
+
+                  const SizedBox(height: 28),
+
+                  // Section Title: Appeals
+                  Text(
+                    'Active Appeals Tracker',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 12),
+
+                  if (allAppeals.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'No appeals have been filed yet.',
+                          style: TextStyle(color: AppColors.textTertiary, fontStyle: FontStyle.italic),
+                        ),
+                      ),
+                    )
+                  else
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: allAppeals.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (ctx, idx) => _buildPatientAppealCard(allAppeals[idx]),
+                    ).animate(delay: 200.ms).fadeIn(),
+                ],
+              ),
+            ),
+
+            const SizedBox(width: 24),
+
+            // Right sidebar
+            Expanded(
+              flex: 1,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Care Team panel
+                  _buildCareTeamPanel(),
+                  const SizedBox(height: 24),
+                  // Upload Center panel
+                  _buildPatientUploadVault(patientName),
+                  const SizedBox(height: 24),
+                  // Notification Box
+                  _buildPatientNotifBox(patientNotifs),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
-}
 
-// ─── Quick Stats Card ─────────────────────────────────────────────────────────
-class _QuickStatsCard extends StatelessWidget {
-  final DashboardStats stats;
-  const _QuickStatsCard({required this.stats});
+  // ─── Patient: Auth Request Card ───
+  Widget _buildPatientAuthCard(AuthorizationRequest auth) {
+    final isRejected = auth.status == AuthorizationStatus.rejected;
+    final isApproved = auth.status == AuthorizationStatus.approved;
 
-  @override
-  Widget build(BuildContext context) {
-    final fmt = NumberFormat.currency(locale: 'en_US', symbol: '\$', decimalDigits: 0);
     return Container(
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(
+          color: isRejected 
+              ? AppColors.error.withOpacity(0.3) 
+              : (isApproved ? AppColors.success.withOpacity(0.3) : AppColors.border),
+        ),
         boxShadow: AppTheme.shadowSm,
       ),
-      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Performance Overview',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 4),
-          Text('Real-time KPIs vs targets',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary)),
-          const SizedBox(height: 20),
-          ...[
-            _KpiRow('AI Decision Accuracy', stats.aiAccuracy, '95% target', AppColors.accent),
-            _KpiRow('Requests Within SLA', stats.percentWithinSla, '95% target', AppColors.primary),
-            _KpiRow('Instant Decisions', stats.percentInstantDecision, '90% target', AppColors.success),
-            _KpiRow('Appeal Success Rate', stats.appealSuccessRate, '80% target', AppColors.warning),
-          ].asMap().entries.map((e) =>
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: e.value,
-            ).animate(delay: Duration(milliseconds: 100 + e.key * 80)).fadeIn().slideX(begin: 0.1)
-          ).toList(),
-
-          const Divider(height: 24),
-
-          // Revenue saved
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Administrative Cost Saved',
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                    )),
-                Text(fmt.format(stats.revenueSavedUsd),
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.success,
-                    )),
-              ]),
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: auth.status.bgColor,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(auth.status.icon, size: 18, color: auth.status.color),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        auth.drugName ?? auth.procedureDescription,
+                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                      ),
+                      Text(
+                        'Requested by: ${auth.requestingDoctorName}',
+                        style: TextStyle(color: AppColors.textTertiary, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  gradient: AppColors.successGradient,
-                  borderRadius: BorderRadius.circular(12),
+                  color: auth.status.bgColor,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusFull),
                 ),
-                child: const Icon(PhosphorIconsRegular.currencyDollar,
-                    color: Colors.white, size: 22),
+                child: Text(
+                  auth.status.label,
+                  style: TextStyle(color: auth.status.color, fontSize: 10, fontWeight: FontWeight.w700),
+                ),
               ),
             ],
           ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.neutral50,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Diagnosis', style: TextStyle(color: AppColors.textTertiary, fontSize: 10)),
+                      const SizedBox(height: 2),
+                      Text(auth.diagnosisDescription, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12), overflow: TextOverflow.ellipsis),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.neutral50,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Insurance Plan', style: TextStyle(color: AppColors.textTertiary, fontSize: 10)),
+                      const SizedBox(height: 2),
+                      Text(auth.insurancePlanName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12), overflow: TextOverflow.ellipsis),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (isRejected) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.errorLight.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.error.withOpacity(0.12)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(PhosphorIconsRegular.warningOctagon, color: AppColors.error, size: 16),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Coverage Rejected by Insurance Company',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.error, fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Denial Code: ${auth.policyClauseCited ?? "Standard Step Therapy Policy"}',
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _showPatientDenialExplanation(context, auth),
+                      icon: const Icon(PhosphorIconsRegular.chatCircleText, size: 14),
+                      label: const Text('Understand Rejection & View Next Steps', style: TextStyle(fontSize: 12)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.error,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
-    ).animate(delay: 200.ms).fadeIn().slideY(begin: 0.1);
+    );
+  }
+
+  // ─── Patient: Show Denial Explanation Dialog ───
+  void _showPatientDenialExplanation(BuildContext ctx, AuthorizationRequest auth) {
+    final explanation = PatientPortalExplanation.generate(auth, null);
+
+    showDialog(
+      context: ctx,
+      builder: (dialogCtx) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(PhosphorIconsRegular.chatCircleText, color: AppColors.error, size: 24),
+            const SizedBox(width: 10),
+            const Text('Explanation of Benefit Decision', style: TextStyle(fontWeight: FontWeight.w800)),
+          ],
+        ),
+        content: SizedBox(
+          width: 550,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  explanation.title,
+                  style: Theme.of(dialogCtx).textTheme.titleSmall?.copyWith(color: AppColors.error, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 12),
+                
+                // Plain language description
+                Text(
+                  explanation.description,
+                  style: const TextStyle(height: 1.5, color: AppColors.textPrimary),
+                ),
+
+                const Divider(height: 32),
+
+                // Next steps
+                Text('What Happens Next (Your Steps):', style: Theme.of(dialogCtx).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 8),
+                ...explanation.nextSteps.map((step) => Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.check_circle_outline_rounded, size: 16, color: AppColors.success),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          step,
+                          style: const TextStyle(fontSize: 12, height: 1.3),
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+
+                const Divider(height: 32),
+
+                // Layperson Glossary
+                Text('Understand Medical Terms:', style: Theme.of(dialogCtx).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 8),
+                ...explanation.glossary.map((entry) => Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.neutral50,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(entry.key, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: AppColors.primary)),
+                      const SizedBox(height: 4),
+                      Text(entry.value, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.3)),
+                    ],
+                  ),
+                )),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Got It'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Patient: Appeal Tracking Card ───
+  Widget _buildPatientAppealCard(AppealCase appeal) {
+    final status = appeal.status;
+    final isActionRequired = status == AppealStatus.underReview;
+
+    // Timeline steps definition
+    final steps = [
+      {'title': 'Appeal Submitted', 'done': true, 'subtitle': 'Filed on ${DateFormat('MMM d').format(appeal.filedAt)}'},
+      {
+        'title': 'Insurer Clinical Review', 
+        'done': status == AppealStatus.underReview || status == AppealStatus.overturned || status == AppealStatus.upheld,
+        'subtitle': isActionRequired ? 'Action Required: Logs Requested' : 'Insurer reviewing details'
+      },
+      {
+        'title': 'Final Decision', 
+        'done': status == AppealStatus.overturned || status == AppealStatus.upheld,
+        'subtitle': status == AppealStatus.overturned 
+            ? 'Approved (Decision Overturned)' 
+            : (status == AppealStatus.upheld ? 'Rejected (Denial Upheld)' : 'Awaiting reviewer final outcome')
+      },
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: isActionRequired ? AppColors.warning.withOpacity(0.3) : AppColors.border),
+        boxShadow: AppTheme.shadowSm,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Appeal Case #${appeal.appealNumber}',
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                  ),
+                  Text(
+                    'Reference Auth: ${appeal.authNumber}',
+                    style: TextStyle(color: AppColors.textTertiary, fontSize: 11),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: isActionRequired 
+                      ? AppColors.warning.withOpacity(0.12)
+                      : (status == AppealStatus.overturned 
+                          ? AppColors.success.withOpacity(0.12) 
+                          : (status == AppealStatus.upheld ? AppColors.error.withOpacity(0.12) : AppColors.primary.withOpacity(0.12))),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+                ),
+                child: Text(
+                  status.statusLabel,
+                  style: TextStyle(
+                    color: isActionRequired 
+                        ? AppColors.warning 
+                        : (status == AppealStatus.overturned 
+                            ? AppColors.success 
+                            : (status == AppealStatus.upheld ? AppColors.error : AppColors.primary)), 
+                    fontSize: 10, 
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // Horizontal Progress steps
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: List.generate(steps.length, (i) {
+              final step = steps[i];
+              final isDone = step['done'] as bool;
+              final subtitle = step['subtitle'] as String;
+
+              return Expanded(
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            height: 2,
+                            color: i == 0 ? Colors.transparent : (isDone ? AppColors.primary : AppColors.neutral200),
+                          ),
+                        ),
+                        Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: isDone ? AppColors.primary : Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: isDone ? AppColors.primary : AppColors.neutral300, width: 2),
+                          ),
+                          child: Center(
+                            child: Icon(
+                              isDone ? Icons.check_rounded : Icons.radio_button_unchecked_rounded,
+                              size: 14,
+                              color: isDone ? Colors.white : AppColors.neutral300,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Container(
+                            height: 2,
+                            color: i == steps.length - 1 ? Colors.transparent : (steps[i+1]['done'] as bool ? AppColors.primary : AppColors.neutral200),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      step['title'] as String,
+                      style: TextStyle(
+                        fontSize: 11, 
+                        fontWeight: isDone ? FontWeight.w700 : FontWeight.w500,
+                        color: isDone ? AppColors.textPrimary : AppColors.textTertiary,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(fontSize: 9, color: AppColors.textTertiary),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ),
+
+          if (isActionRequired) ...[
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.warning.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.warning.withOpacity(0.2)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.info_outline_rounded, color: AppColors.warning, size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Insurer Action Required: Missing Clinical Logs',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.warning, fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    appeal.rejectionReason ?? 'The medical reviewer has requested conservative therapy documentation (e.g. proof of step therapy medication or physical therapy trials).',
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 11, height: 1.3),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _showProvideLogsDialog(appeal),
+                      icon: const Icon(PhosphorIconsRegular.upload, size: 14),
+                      label: const Text('Provide Clinical Documents / Logs', style: TextStyle(fontSize: 12)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.warning,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ─── Patient: Provide logs form ───
+  void _showProvideLogsDialog(AppealCase appeal) {
+    final logController = TextEditingController();
+    final fileController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('Submit Requested Clinical Records', style: TextStyle(fontWeight: FontWeight.w700)),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Provide details of your conservative treatments or therapy logs to resolve the insurer information request.',
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.3),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: logController,
+                decoration: const InputDecoration(
+                  labelText: 'Treatment / Conservative Therapy Logs Description',
+                  hintText: 'e.g. Completed 6 weeks physical therapy log for chronic migraine prevention.',
+                ),
+                validator: (v) => v == null || v.trim().isEmpty ? 'Please describe the logs' : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: fileController,
+                decoration: const InputDecoration(
+                  labelText: 'File Name Attachment Reference',
+                  hintText: 'e.g. physical_therapy_preventative_logs_Q2.pdf',
+                ),
+                validator: (v) => v == null || v.trim().isEmpty ? 'Please specify file reference name' : null,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                final randomId = DateTime.now().millisecondsSinceEpoch.toString().substring(8);
+                final prevHash = MockDataRepository.instance.auditLogs.isNotEmpty 
+                    ? MockDataRepository.instance.auditLogs.last.entryHash 
+                    : 'f9e2d1c6b3a8';
+
+                final docName = fileController.text.trim();
+
+                // Update appeal case
+                final idx = MockDataRepository.instance.appeals.indexWhere((a) => a.id == appeal.id);
+                if (idx != -1) {
+                  final old = MockDataRepository.instance.appeals[idx];
+                  MockDataRepository.instance.appeals[idx] = AppealCase(
+                    id: old.id,
+                    appealNumber: old.appealNumber,
+                    authorizationId: old.authorizationId,
+                    authNumber: old.authNumber,
+                    patientName: old.patientName,
+                    filedById: old.filedById,
+                    filedByName: old.filedByName,
+                    status: AppealStatus.submitted, // return status to submitted
+                    filedAt: old.filedAt,
+                    groundsForAppeal: old.groundsForAppeal + '\n\nPatient Uploaded Info: ' + logController.text.trim(),
+                    supportingEvidence: old.supportingEvidence,
+                    aiSuccessProbability: old.aiSuccessProbability,
+                    aiProbabilityLow: old.aiProbabilityLow,
+                    aiProbabilityHigh: old.aiProbabilityHigh,
+                    draftAppealLetter: old.draftAppealLetter,
+                    documentIds: [...old.documentIds, docName],
+                  );
+                }
+
+                // Log audit trail
+                MockDataRepository.instance.auditLogs.add(
+                  AuditLogEntry(
+                    id: 'log-$randomId',
+                    action: 'appeal.document_uploaded',
+                    actorId: 'usr-005',
+                    actorName: 'Emily Thompson',
+                    actorRole: 'Patient',
+                    resourceId: appeal.id,
+                    resourceType: 'AppealCase',
+                    description: 'Patient uploaded documentation: $docName for Appeal #${appeal.appealNumber}',
+                    timestamp: DateTime.now(),
+                    entryHash: 'e${randomId}h',
+                    previousHash: prevHash,
+                    ipAddress: '192.168.1.105',
+                    metadata: {'file_name': docName},
+                  ),
+                );
+
+                // Add notification
+                MockDataRepository.instance.notifications.insert(
+                  0,
+                  AppNotification(
+                    id: 'notif-$randomId',
+                    title: 'Medical Documents Submitted',
+                    message: 'Patient Emily Thompson submitted additional file: $docName.',
+                    type: NotificationType.appeal,
+                    isRead: false,
+                    resourceId: appeal.id,
+                    resourceType: 'AppealCase',
+                    createdAt: DateTime.now(),
+                  ),
+                );
+
+                Navigator.pop(dialogCtx);
+                setState(() {});
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Document "$docName" has been submitted successfully to insurer review queue.'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              }
+            },
+            child: const Text('Submit Documents'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Patient: Care Team Panel ───
+  Widget _buildCareTeamPanel() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Your Medical Care Team', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+          const SizedBox(height: 12),
+          _careTeamMember('Dr. Michael Johnson', 'Primary Treating Neurologist', PhosphorIconsRegular.userCircle),
+          const SizedBox(height: 10),
+          _careTeamMember('Sarah Jenkins', 'Clinical Review Coordinator', PhosphorIconsRegular.userCircleGear),
+          const SizedBox(height: 10),
+          _careTeamMember('UnitedHealthcare Support', 'Insurance Payer Representative', PhosphorIconsRegular.shieldCheck),
+        ],
+      ),
+    );
+  }
+
+  Widget _careTeamMember(String name, String role, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: AppColors.primary),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+              Text(role, style: TextStyle(color: AppColors.textTertiary, fontSize: 10)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─── Patient: Documents vault panel ───
+  Widget _buildPatientUploadVault(String patientName) {
+    // Collect document IDs currently in mock data matching Emily
+    final files = ['emily_migraine_history_2023.pdf', 'er_billing_summary.pdf'];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Medical Documents Vault', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+              IconButton(
+                icon: const Icon(Icons.add_rounded, size: 18, color: AppColors.primary),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () {
+                  final filenameController = TextEditingController();
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Mock Upload Document', style: TextStyle(fontWeight: FontWeight.w700)),
+                      content: TextFormField(
+                        controller: filenameController,
+                        decoration: const InputDecoration(
+                          labelText: 'File Name',
+                          hintText: 'e.g. lab_results_october.pdf',
+                        ),
+                        autofocus: true,
+                      ),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                        ElevatedButton(
+                          onPressed: () {
+                            if (filenameController.text.trim().isNotEmpty) {
+                              final name = filenameController.text.trim();
+                              // Log audit trail
+                              final randomId = DateTime.now().millisecondsSinceEpoch.toString().substring(8);
+                              final prevHash = MockDataRepository.instance.auditLogs.isNotEmpty 
+                                  ? MockDataRepository.instance.auditLogs.last.entryHash 
+                                  : 'f9e2d1c6b3a8';
+
+                              MockDataRepository.instance.auditLogs.add(
+                                AuditLogEntry(
+                                  id: 'log-$randomId',
+                                  action: 'patient.document_uploaded',
+                                  actorId: 'usr-005',
+                                  actorName: 'Emily Thompson',
+                                  actorRole: 'Patient',
+                                  resourceId: 'pat-009',
+                                  resourceType: 'Patient',
+                                  description: 'Patient Emily Thompson uploaded file: $name to their document vault.',
+                                  timestamp: DateTime.now(),
+                                  entryHash: 'e${randomId}h',
+                                  previousHash: prevHash,
+                                  ipAddress: '192.168.1.105',
+                                  metadata: {'file_name': name},
+                                ),
+                              );
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Document "$name" uploaded to vault successfully.'),
+                                  backgroundColor: AppColors.success,
+                                ),
+                              );
+                            }
+                            Navigator.pop(ctx);
+                          },
+                          child: const Text('Upload'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ...files.map((file) => Card(
+            margin: const EdgeInsets.only(bottom: 6),
+            elevation: 0,
+            color: AppColors.neutral50,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+            child: ListTile(
+              dense: true,
+              leading: const Icon(PhosphorIconsRegular.filePdf, size: 18, color: AppColors.neutral600),
+              title: Text(file, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11)),
+              trailing: const Icon(Icons.check_rounded, color: AppColors.success, size: 14),
+            ),
+          )),
+        ],
+      ),
+    );
+  }
+
+  // ─── Patient: Notification Box panel ───
+  Widget _buildPatientNotifBox(List<AppNotification> notifs) {
+    // Show only the 3 most recent notifications for simplicity
+    final displayNotifs = notifs.take(3).toList();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Recent Portal Alerts', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+          const SizedBox(height: 12),
+          if (displayNotifs.isEmpty)
+            const Text('No recent alerts.', style: TextStyle(fontSize: 11, color: AppColors.textTertiary, fontStyle: FontStyle.italic))
+          else
+            ...displayNotifs.map((notif) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    notif.type == NotificationType.appeal ? PhosphorIconsRegular.gavel : PhosphorIconsRegular.bell, 
+                    size: 16, 
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(notif.title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11)),
+                        Text(notif.message, style: TextStyle(color: AppColors.textSecondary, fontSize: 10, height: 1.2)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            )),
+        ],
+      ),
+    );
   }
 }
 
-class _KpiRow extends StatelessWidget {
-  final String label;
-  final double value;
-  final String target;
-  final Color color;
-  const _KpiRow(this.label, this.value, this.target, this.color);
+// ─── Mini Bar Chart component ────────────────────────────────────────────────
+class _MiniBarChart extends StatelessWidget {
+  final List<double> heights;
+  const _MiniBarChart({required this.heights});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: heights.map((h) => Container(
+        width: 4,
+        height: h,
+        margin: const EdgeInsets.symmetric(horizontal: 1.5),
+        decoration: BoxDecoration(
+          color: AppColors.mockupPurple,
+          borderRadius: BorderRadius.circular(1.5),
+        ),
+      )).toList(),
+    );
+  }
+}
+
+// ─── Satisfaction Rate Bezier Custom Painter ─────────────────────────────────
+class _SatisfactionPainter extends CustomPainter {
+  final List<double> points = [20, 35, 25, 45, 40, 55, 48, 60, 52];
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = AppColors.mockupPurple
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final fillPaint = Paint()
+      ..style = PaintingStyle.fill
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          AppColors.mockupPurple.withOpacity(0.15),
+          AppColors.mockupPurple.withOpacity(0.0),
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+
+    final path = Path();
+    final fillPath = Path();
+
+    final double dx = size.width / (points.length - 1);
+    
+    path.moveTo(0, size.height - (points[0] / 100 * size.height));
+    fillPath.moveTo(0, size.height);
+    fillPath.lineTo(0, size.height - (points[0] / 100 * size.height));
+
+    for (int i = 0; i < points.length - 1; i++) {
+      final x1 = i * dx;
+      final y1 = size.height - (points[i] / 100 * size.height);
+      final x2 = (i + 1) * dx;
+      final y2 = size.height - (points[i + 1] / 100 * size.height);
+      
+      final cx1 = x1 + dx / 2;
+      final cy1 = y1;
+      final cx2 = x1 + dx / 2;
+      final cy2 = y2;
+
+      path.cubicTo(cx1, cy1, cx2, cy2, x2, y2);
+      fillPath.cubicTo(cx1, cy1, cx2, cy2, x2, y2);
+    }
+
+    fillPath.lineTo(size.width, size.height);
+    fillPath.close();
+
+    canvas.drawPath(fillPath, fillPaint);
+    canvas.drawPath(path, paint);
+
+    // Draw dots at intervals
+    final dotPaint = Paint()..color = AppColors.mockupPurple..style = PaintingStyle.fill;
+    final dotOuterPaint = Paint()..color = Colors.white..style = PaintingStyle.fill;
+    
+    for (int i = 0; i < points.length; i++) {
+      if (i % 2 == 0) {
+        final x = i * dx;
+        final y = size.height - (points[i] / 100 * size.height);
+        canvas.drawCircle(Offset(x, y), 5, dotOuterPaint);
+        canvas.drawCircle(Offset(x, y), 3, dotPaint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// ─── Desktop Calendar Grid ───────────────────────────────────────────────────
+class _DesktopCalendar extends StatefulWidget {
+  @override
+  State<_DesktopCalendar> createState() => _DesktopCalendarState();
+}
+
+class _DesktopCalendarState extends State<_DesktopCalendar> {
+  int _selectedDay = 14;
+
+  @override
+  Widget build(BuildContext context) {
+    final daysInMonth = 31;
+    final firstDayOffset = 5; // Saturday start March 2025
+    final weekdayLabels = ['Moe', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.chevron_left_rounded, size: 16),
+              onPressed: () {},
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const Text(
+              "March, 2025",
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.mockupDark),
+            ),
+            IconButton(
+              icon: const Icon(Icons.chevron_right_rounded, size: 16),
+              onPressed: () {},
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: weekdayLabels.map((w) => Expanded(
+            child: Center(
+              child: Text(
+                w,
+                style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w600),
+              ),
+            ),
+          )).toList(),
+        ),
+        const SizedBox(height: 8),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 7,
+            mainAxisSpacing: 6,
+            crossAxisSpacing: 6,
+            childAspectRatio: 1,
+          ),
+          itemCount: daysInMonth + firstDayOffset,
+          itemBuilder: (context, index) {
+            if (index < firstDayOffset) {
+              return const SizedBox.shrink();
+            }
+            final day = index - firstDayOffset + 1;
+            final isSelected = day == _selectedDay;
+            final isHighlight = [1, 9, 14, 22, 23, 29, 30].contains(day);
+
+            return InkWell(
+              onTap: () => setState(() => _selectedDay = day),
+              borderRadius: BorderRadius.circular(100),
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isSelected
+                      ? AppColors.mockupPurple
+                      : (isHighlight ? AppColors.mockupPurpleLight : Colors.transparent),
+                ),
+                child: Center(
+                  child: Text(
+                    "$day",
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: (isSelected || isHighlight) ? FontWeight.bold : FontWeight.normal,
+                      color: isSelected
+                          ? Colors.white
+                          : (isHighlight ? AppColors.mockupPurple : AppColors.mockupDark),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Consultations Segmented Stacked Bar Chart ───────────────────────────────
+class _ConsultationsChart extends StatefulWidget {
+  @override
+  State<_ConsultationsChart> createState() => _ConsultationsChartState();
+}
+
+class _ConsultationsChartState extends State<_ConsultationsChart> {
+  int _hoveredIndex = 2;
+
+  final List<Map<String, dynamic>> _chartData = [
+    {'day': 'Mon', 'male': 4, 'female': 3},
+    {'day': 'Tue', 'male': 5, 'female': 4},
+    {'day': 'Wed', 'male': 5, 'female': 5},
+    {'day': 'Thu', 'male': 3, 'female': 2},
+    {'day': 'Fri', 'male': 6, 'female': 4},
+    {'day': 'Sat', 'male': 2, 'female': 1},
+    {'day': 'Sun', 'male': 1, 'female': 1},
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -627,23 +1917,154 @@ class _KpiRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
-            Text('${(value * 100).toStringAsFixed(1)}%',
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: color, fontWeight: FontWeight.w700)),
+            const Text(
+              "Consultations",
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AppColors.mockupDark),
+            ),
+            const Spacer(),
+            // Legend
+            Row(
+              children: [
+                Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.mockupTeal, shape: BoxShape.circle)),
+                const SizedBox(width: 4),
+                const Text("Male", style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w600)),
+                const SizedBox(width: 16),
+                Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.mockupPurple, shape: BoxShape.circle)),
+                const SizedBox(width: 4),
+                const Text("Female", style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w600)),
+              ],
+            ),
+            const SizedBox(width: 20),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade200),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                children: [
+                  Icon(PhosphorIconsRegular.calendar, size: 12, color: Colors.grey.shade600),
+                  const SizedBox(width: 4),
+                  const Text("Week", style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
           ],
         ),
-        const SizedBox(height: 6),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: value,
-            backgroundColor: color.withOpacity(0.12),
-            valueColor: AlwaysStoppedAnimation<Color>(color),
-            minHeight: 6,
+        const SizedBox(height: 24),
+        // Chart Area
+        Expanded(
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              // Grid lines
+              Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: List.generate(6, (index) => Container(
+                  height: 1,
+                  color: Colors.grey.shade100,
+                )),
+              ),
+              // Columns
+              Positioned.fill(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: _chartData.asMap().entries.map((entry) {
+                    final idx = entry.key;
+                    final data = entry.value;
+                    final maleVal = data['male'] as int;
+                    final femaleVal = data['female'] as int;
+                    final day = data['day'] as String;
+
+                    return Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _hoveredIndex = idx),
+                        behavior: HitTestBehavior.opaque,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          alignment: Alignment.bottomCenter,
+                          children: [
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                // Male Blocks (Teal)
+                                ...List.generate(maleVal, (i) => Container(
+                                  width: 20,
+                                  height: 10,
+                                  margin: const EdgeInsets.only(bottom: 2),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.mockupTeal,
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                )),
+                                // Female Blocks (Purple)
+                                ...List.generate(femaleVal, (i) => Container(
+                                  width: 20,
+                                  height: 10,
+                                  margin: const EdgeInsets.only(bottom: 2),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.mockupPurple,
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                )),
+                                const SizedBox(height: 8),
+                                Text(
+                                  day,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.grey.shade500,
+                                    fontWeight: _hoveredIndex == idx ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            // Tooltip Box above Wednesday/Selected
+                            if (_hoveredIndex == idx)
+                              Positioned(
+                                bottom: (maleVal + femaleVal) * 12.0 + 20,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1E293B),
+                                    borderRadius: BorderRadius.circular(8),
+                                    boxShadow: const [
+                                      BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4)),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        "$day, 26",
+                                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          Container(width: 6, height: 6, decoration: const BoxDecoration(color: AppColors.mockupTeal, shape: BoxShape.circle)),
+                                          const SizedBox(width: 4),
+                                          Text("Male $maleVal", style: const TextStyle(color: Colors.white70, fontSize: 9)),
+                                          const SizedBox(width: 10),
+                                          Container(width: 6, height: 6, decoration: const BoxDecoration(color: AppColors.mockupPurple, shape: BoxShape.circle)),
+                                          const SizedBox(width: 4),
+                                          Text("Female $femaleVal", style: const TextStyle(color: Colors.white70, fontSize: 9)),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -651,654 +2072,324 @@ class _KpiRow extends StatelessWidget {
   }
 }
 
-// ─── Approval Trend Chart ─────────────────────────────────────────────────────
-class _ApprovalTrendChart extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final trend = ref.watch(approvalTrendProvider);
-    final last14 = trend.skip(trend.length - 14).toList();
+// ─── Mobile Interactive Mood Slider ──────────────────────────────────────────
+class _MoodSlider extends StatefulWidget {
+  const _MoodSlider();
 
+  @override
+  State<_MoodSlider> createState() => _MoodSliderState();
+}
+
+class _MoodSliderState extends State<_MoodSlider> {
+  double _value = 2.0;
+
+  final List<String> _emojis = ['😢', '😕', '😐', '🙂', '😄'];
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      height: 280,
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: AppColors.border),
-        boxShadow: AppTheme.shadowSm,
+        color: AppColors.mockupTealLight.withOpacity(0.4),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.mockupTeal.withOpacity(0.12)),
       ),
-      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Text('Approval Trend',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-            const Spacer(),
-            _ChipFilter('30 Days'),
-          ]),
-          const SizedBox(height: 4),
-          Text('Authorization decisions over the last 14 days',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary)),
+          const Text(
+            "How are you feeling?",
+            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.mockupDark),
+          ),
           const SizedBox(height: 16),
-          Expanded(
-            child: LineChart(
-              LineChartData(
-                gridData: FlGridData(
-                  drawHorizontalLine: true,
-                  drawVerticalLine: false,
-                  horizontalInterval: 30,
-                  getDrawingHorizontalLine: (v) => FlLine(
-                    color: AppColors.neutral100,
-                    strokeWidth: 1,
-                  ),
-                ),
-                titlesData: FlTitlesData(
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 36,
-                      getTitlesWidget: (v, meta) => Text(
-                        v.round().toString(),
-                        style: TextStyle(fontSize: 10, color: AppColors.textTertiary),
-                      ),
-                    ),
-                  ),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 22,
-                      getTitlesWidget: (v, meta) {
-                        final idx = v.toInt();
-                        if (idx >= last14.length || idx % 3 != 0) return const SizedBox.shrink();
-                        final date = last14[idx]['date'] as DateTime;
-                        return Text(DateFormat('M/d').format(date),
-                            style: TextStyle(fontSize: 10, color: AppColors.textTertiary));
-                      },
-                    ),
-                  ),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                ),
-                borderData: FlBorderData(show: false),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: last14.asMap().entries.map((e) =>
-                        FlSpot(e.key.toDouble(), (e.value['approved'] as int).toDouble())
-                    ).toList(),
-                    isCurved: true,
-                    color: AppColors.success,
-                    barWidth: 2.5,
-                    dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [AppColors.success.withOpacity(0.15), AppColors.success.withOpacity(0.0)],
-                      ),
-                    ),
-                  ),
-                  LineChartBarData(
-                    spots: last14.asMap().entries.map((e) =>
-                        FlSpot(e.key.toDouble(), (e.value['rejected'] as int).toDouble())
-                    ).toList(),
-                    isCurved: true,
-                    color: AppColors.error,
-                    barWidth: 2,
-                    dotData: const FlDotData(show: false),
-                    dashArray: [5, 5],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(children: [
-            _ChartLegend(color: AppColors.success, label: 'Approved'),
-            const SizedBox(width: 16),
-            _ChartLegend(color: AppColors.error, label: 'Rejected'),
-          ]),
-        ],
-      ),
-    ).animate(delay: 400.ms).fadeIn().slideY(begin: 0.1);
-  }
-}
-
-class _ChipFilter extends StatelessWidget {
-  final String label;
-  const _ChipFilter(this.label);
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-    decoration: BoxDecoration(
-      color: AppColors.primarySurface,
-      borderRadius: BorderRadius.circular(AppTheme.radiusFull),
-    ),
-    child: Text(label, style: Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: AppColors.primary, fontWeight: FontWeight.w600)),
-  );
-}
-
-class _ChartLegend extends StatelessWidget {
-  final Color color;
-  final String label;
-  const _ChartLegend({required this.color, required this.label});
-  @override
-  Widget build(BuildContext context) => Row(children: [
-    Container(width: 16, height: 3, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
-    const SizedBox(width: 6),
-    Text(label, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.textSecondary)),
-  ]);
-}
-
-// ─── Disease Stats Donut ──────────────────────────────────────────────────────
-class _DiseaseStatsChart extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final data = MockDataRepository.instance.diseaseStats;
-
-    return Container(
-      height: 280,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: AppColors.border),
-        boxShadow: AppTheme.shadowSm,
-      ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Disease Distribution',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-          Text('ICD-10 category breakdown',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary)),
-          const SizedBox(height: 12),
-          Expanded(
-            child: Row(
-              children: [
-                Expanded(
-                  child: PieChart(PieChartData(
-                    sections: data.take(5).toList().asMap().entries.map((e) {
-                      return PieChartSectionData(
-                        value: (e.value['pct'] as double) * 100,
-                        color: AppColors.chartPalette[e.key],
-                        radius: 36,
-                        title: '',
-                      );
-                    }).toList(),
-                    centerSpaceRadius: 32,
-                    sectionsSpace: 2,
-                  )),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: data.take(5).toList().asMap().entries.map((e) =>
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 3),
-                          child: Row(children: [
-                            Container(width: 8, height: 8,
-                                decoration: BoxDecoration(
-                                  color: AppColors.chartPalette[e.key],
-                                  shape: BoxShape.circle,
-                                )),
-                            const SizedBox(width: 6),
-                            Expanded(child: Text(e.value['diagnosis'] as String,
-                                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  color: AppColors.textSecondary,
-                                ), overflow: TextOverflow.ellipsis)),
-                            Text('${((e.value['pct'] as double) * 100).toStringAsFixed(0)}%',
-                                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                )),
-                          ]),
-                        )
-                    ).toList(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    ).animate(delay: 450.ms).fadeIn().slideY(begin: 0.1);
-  }
-}
-
-// ─── Recent Authorizations ────────────────────────────────────────────────────
-class _RecentAuthorizationsCard extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final auths = ref.watch(recentAuthsProvider);
-
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: AppColors.border),
-        boxShadow: AppTheme.shadowSm,
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Recent Authorizations',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-                      Text(
-                        'Latest 5 requests across all facilities',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                TextButton(
-                  onPressed: () => context.go(RouteNames.authorizations),
-                  child: const Text('View all →'),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-          ...auths.asMap().entries.map((e) =>
-              _AuthRow(auth: e.value, isLast: e.key == auths.length - 1)
-                  .animate(delay: Duration(milliseconds: 100 + e.key * 60)).fadeIn().slideX(begin: 0.05)
-          ).toList(),
-        ],
-      ),
-    ).animate(delay: 500.ms).fadeIn().slideY(begin: 0.1);
-  }
-}
-
-class _AuthRow extends StatelessWidget {
-  final AuthorizationRequest auth;
-  final bool isLast;
-  const _AuthRow({required this.auth, required this.isLast});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      decoration: BoxDecoration(
-        border: isLast ? null : Border(bottom: BorderSide(color: AppColors.neutral100)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 36, height: 36,
-            decoration: BoxDecoration(
-              color: auth.status.bgColor,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(auth.status.icon, size: 18, color: auth.status.color),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(auth.patientName,
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    )),
-                Text('${auth.authNumber} · ${auth.diagnosisDescription}',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppColors.textTertiary,
-                    ), overflow: TextOverflow.ellipsis),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            _StatusChip(status: auth.status),
-            const SizedBox(height: 4),
-            if (auth.processingTimeMs != null)
-              Text('${(auth.processingTimeMs! / 1000).toStringAsFixed(1)}s',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: auth.isWithinSla ? AppColors.success : AppColors.error,
-                    fontWeight: FontWeight.w600,
-                  )),
-          ]),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatusChip extends StatelessWidget {
-  final AuthorizationStatus status;
-  const _StatusChip({required this.status});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: status.bgColor,
-        borderRadius: BorderRadius.circular(AppTheme.radiusFull),
-      ),
-      child: Text(status.label,
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: status.color,
-            fontWeight: FontWeight.w600,
-          )),
-    );
-  }
-}
-
-// ─── Fraud Anomaly Radar ──────────────────────────────────────────────────────
-class _FraudAnomalyCard extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final signals = [
-      ('Billing Freq.', 0.22, 'CPT 70553 pattern'),
-      ('CMS Benchmark', 0.51, 'CPT 22612 outlier'),
-      ('Duplicate Detect.', 0.09, 'No duplicates'),
-      ('Geo Anomaly', 0.12, 'Within region'),
-      ('Provider Pattern', 0.43, 'M54.5 frequency'),
-      ('Drug Eligibility', 0.15, 'DailyMed verified'),
-      ('Fraud Flagged', 0.07, 'auth-005 escalated'),
-    ];
-
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: AppColors.border),
-        boxShadow: AppTheme.shadowSm,
-      ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            Container(
-              width: 32, height: 32,
-              decoration: BoxDecoration(
-                color: AppColors.errorLight,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(PhosphorIconsRegular.shield,
-                  size: 16, color: AppColors.error),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Fraud & Anomaly Radar',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-                  Text(
-                    'CMS benchmark deviation signals',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
-                ],
-              ),
-            ),
-          ]),
-
-          const SizedBox(height: 16),
-
-          ...signals.asMap().entries.map((e) {
-            final (label, score, note) = e.value;
-            Color barColor;
-            if (score >= AppConstants.fraudHighRiskScore) {
-              barColor = AppColors.error;
-            } else if (score >= AppConstants.fraudMediumRiskScore) {
-              barColor = AppColors.warning;
-            } else {
-              barColor = AppColors.success;
-            }
-
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(children: [
-                    Expanded(child: Text(label,
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: AppColors.textSecondary, fontWeight: FontWeight.w500))),
-                    Text('${(score * 100).toStringAsFixed(0)}%',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: barColor, fontWeight: FontWeight.w700)),
-                  ]),
-                  const SizedBox(height: 4),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(3),
-                    child: LinearProgressIndicator(
-                      value: score,
-                      backgroundColor: barColor.withOpacity(0.1),
-                      valueColor: AlwaysStoppedAnimation<Color>(barColor),
-                      minHeight: 5,
-                    ),
-                  ),
-                ],
-              ).animate(delay: Duration(milliseconds: 100 + e.key * 50)).fadeIn().slideX(begin: 0.1),
-            );
-          }).toList(),
-        ],
-      ),
-    ).animate(delay: 550.ms).fadeIn().slideY(begin: 0.1);
-  }
-}
-
-// ─── FHIR Sync Health Bar ─────────────────────────────────────────────────────
-class _FhirSyncHealthBar extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final syncs = MockDataRepository.instance.fhirSyncs.take(4).toList();
-
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: AppColors.border),
-        boxShadow: AppTheme.shadowSm,
-      ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Row(children: [
-                  Icon(PhosphorIconsRegular.plugsConnected,
-                      size: 18, color: AppColors.primary),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text('FHIR R4 Sync Health',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1),
+            children: List.generate(5, (index) {
+              final isSelected = index == _value.round();
+              return AnimatedScale(
+                scale: isSelected ? 1.4 : 1.0,
+                duration: const Duration(milliseconds: 150),
+                child: AnimatedOpacity(
+                  opacity: isSelected ? 1.0 : 0.3,
+                  duration: const Duration(milliseconds: 150),
+                  child: Text(
+                    _emojis[index],
+                    style: const TextStyle(
+                      fontSize: 24,
+                    ),
                   ),
-                ]),
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 12),
+          SliderTheme(
+            data: SliderThemeData(
+              trackHeight: 6,
+              activeTrackColor: AppColors.mockupTeal,
+              inactiveTrackColor: Colors.grey.shade200,
+              thumbColor: AppColors.mockupTeal,
+              overlayColor: AppColors.mockupTeal.withOpacity(0.15),
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+              activeTickMarkColor: Colors.transparent,
+              inactiveTickMarkColor: Colors.transparent,
+            ),
+            child: Slider(
+              value: _value,
+              min: 0,
+              max: 4,
+              divisions: 4,
+              onChanged: (val) {
+                setState(() => _value = val);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Mobile Horizontal Date Picker ───────────────────────────────────────────
+class _HorizontalDatePicker extends StatefulWidget {
+  @override
+  State<_HorizontalDatePicker> createState() => _HorizontalDatePickerState();
+}
+
+class _HorizontalDatePickerState extends State<_HorizontalDatePicker> {
+  int _selectedDayIndex = 2; // Wednesday (24) default
+
+  final List<Map<String, String>> _days = [
+    {'day': 'Mon', 'date': '22'},
+    {'day': 'Tue', 'date': '23'},
+    {'day': 'Wed', 'date': '24'},
+    {'day': 'Thu', 'date': '25'},
+    {'day': 'Fri', 'date': '26'},
+    {'day': 'Sat', 'date': '27'},
+    {'day': 'Sun', 'date': '28'},
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: _days.asMap().entries.map((entry) {
+          final idx = entry.key;
+          final d = entry.value;
+          final isSelected = idx == _selectedDayIndex;
+
+          return GestureDetector(
+            onTap: () => setState(() => _selectedDayIndex = idx),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              margin: const EdgeInsets.only(right: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.mockupPurple : Colors.transparent,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: isSelected ? Colors.transparent : Colors.grey.shade200,
+                ),
               ),
-              const SizedBox(width: 8),
-              TextButton(
-                onPressed: () => context.go(RouteNames.integrations),
-                child: const Text('View all →'),
+              child: Column(
+                children: [
+                  Text(
+                    d['day']!,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isSelected ? Colors.white70 : Colors.grey,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    d['date']!,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: isSelected ? Colors.white : AppColors.mockupDark,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+// ─── Mobile Timeline Appointments list ───────────────────────────────────────
+class _TimelineAppointments extends StatelessWidget {
+  final List<Map<String, dynamic>> appointments = [
+    {
+      'time': '09:00',
+      'apt': {
+        'name': 'Dr. Leslie Alexander',
+        'specialty': 'Orthopedic surgeon',
+        'timeText': 'Wednesday, 24 March · 09:30 AM',
+        'initials': 'LA',
+      }
+    },
+    {
+      'time': '10:00',
+      'apt': null,
+    },
+    {
+      'time': '11:00',
+      'apt': {
+        'name': 'Dr. Wade Warren',
+        'specialty': 'Physiotherapist',
+        'timeText': 'Wednesday, 24 March · 11:30 AM',
+        'initials': 'WW',
+      }
+    },
+    {
+      'time': '12:00',
+      'apt': null,
+    },
+    {
+      'time': '13:00',
+      'apt': null,
+    },
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: appointments.length,
+      itemBuilder: (context, index) {
+        final item = appointments[index];
+        final time = item['time'] as String;
+        final apt = item['apt'] as Map<String, dynamic>?;
+
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Left side time label
+              SizedBox(
+                width: 50,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    time,
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade400, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+              // Vertical divider node
+              Column(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: apt != null ? AppColors.mockupPurple : Colors.grey.shade200,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  Expanded(
+                    child: Container(
+                      width: 2,
+                      color: Colors.grey.shade100,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 16),
+              // Right content card / placeholder
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 20),
+                  child: apt != null
+                      ? Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: Colors.grey.shade100),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.01),
+                                blurRadius: 6,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 18,
+                                backgroundColor: AppColors.mockupPurpleLight,
+                                child: Text(
+                                  apt['initials']!,
+                                  style: const TextStyle(
+                                    color: AppColors.mockupPurple,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      apt['name']!,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.mockupDark,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      apt['specialty']!,
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Colors.grey.shade500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Icon(PhosphorIconsRegular.clock, size: 10, color: Colors.grey.shade400),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          apt['timeText']!,
+                                          style: TextStyle(
+                                            fontSize: 9,
+                                            color: Colors.grey.shade400,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : Container(
+                          alignment: Alignment.centerLeft,
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Text(
+                            "Available slots",
+                            style: TextStyle(fontSize: 10, color: Colors.grey.shade300, fontStyle: FontStyle.italic),
+                          ),
+                        ),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          LayoutBuilder(builder: (ctx, constraints) {
-            final isMobile = constraints.maxWidth < 600;
-            if (isMobile) {
-              return GridView.count(
-                crossAxisCount: 2,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio: 1.5,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                children: syncs.map((sync) => _FhirResourceTile(sync: sync)).toList(),
-              );
-            }
-            return Row(
-              children: syncs.asMap().entries.map((e) {
-                final sync = e.value;
-                return Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(right: e.key < syncs.length - 1 ? 12 : 0),
-                    child: _FhirResourceTile(sync: sync),
-                  ),
-                );
-              }).toList(),
-            );
-          }),
-        ],
-      ),
-    ).animate(delay: 600.ms).fadeIn().slideY(begin: 0.1);
-  }
-}
-
-class _FhirResourceTile extends StatelessWidget {
-  final FhirResourceSync sync;
-  const _FhirResourceTile({required this.sync});
-
-  @override
-  Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 10.0 : 14.0,
-        vertical: isMobile ? 8.0 : 14.0,
-      ),
-      decoration: BoxDecoration(
-        color: sync.statusColor.withOpacity(0.06),
-        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        border: Border.all(color: sync.statusColor.withOpacity(0.25)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            Container(
-              width: 8, height: 8,
-              decoration: BoxDecoration(color: sync.statusColor, shape: BoxShape.circle),
-            ),
-            const SizedBox(width: 6),
-            Text(sync.resourceType,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
-                overflow: TextOverflow.ellipsis),
-          ]),
-          const SizedBox(height: 8),
-          Text('${sync.syncedCount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')} synced',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary)),
-          if (sync.pendingCount != null && sync.pendingCount! > 0)
-            Text('${sync.pendingCount} pending',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: sync.statusColor,
-                  fontWeight: FontWeight.w500,
-                )),
-        ],
-      ),
+        );
+      },
     );
-  }
-}
-
-class _TaskFlowPreviewBanner extends StatelessWidget {
-  const _TaskFlowPreviewBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFF0F172A),
-            Color(0xFF1E293B),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: AppTheme.shadowSm,
-        border: Border.all(color: Colors.white12, width: 1),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.08),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              PhosphorIconsRegular.squaresFour,
-              color: Colors.white,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Task Flow Project Dashboard Preview',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'We have drafted the new project management dashboard layout. Try the interactive demo now!',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          ElevatedButton(
-            onPressed: () => context.go(RouteNames.taskFlow),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: const Color(0xFF0F172A),
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              textStyle: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Launch Preview'),
-                SizedBox(width: 6),
-                Icon(PhosphorIconsRegular.arrowRight, size: 14),
-              ],
-            ),
-          ),
-        ],
-      ),
-    ).animate().fadeIn(delay: 150.ms).slideY(begin: 0.1);
   }
 }

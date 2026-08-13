@@ -80,6 +80,15 @@ final _demoUsers = <String, AppUser>{
     createdAt: DateTime(2024, 5, 8),
     lastLoginAt: DateTime.now().subtract(const Duration(days: 2)),
   ),
+  'hospital_admin@mediauth.ai': AppUser(
+    id: 'usr-006',
+    name: 'Sarah Jenkins',
+    email: 'hospital_admin@mediauth.ai',
+    role: UserRole.adminHospital,
+    facility: 'Metropolitan General Hospital',
+    createdAt: DateTime(2024, 6, 12),
+    lastLoginAt: DateTime.now().subtract(const Duration(hours: 3)),
+  ),
 };
 
 const _demoPasswords = <String, String>{
@@ -88,6 +97,7 @@ const _demoPasswords = <String, String>{
   'reviewer@mediauth.ai': 'Review@123',
   'staff@mediauth.ai':    'Staff@123',
   'patient@mediauth.ai':  'Patient@123',
+  'hospital_admin@mediauth.ai': 'Admin@123',
 };
 
 const _kSessionEmailKey = 'mediauth_session_email';

@@ -18,6 +18,7 @@ class MockDataRepository {
       contactEmail: 'r.martinez@email.com', facilityId: 'fac-001',
       totalAuthorizations: 8, approvedAuthorizations: 6, pendingAuthorizations: 1,
       mrn: 'MRN-0045231',
+      guardianName: 'Maria Martinez', guardianPhone: '(555) 901-2384', guardianRelationship: 'Spouse',
     ),
     const Patient(
       id: 'pat-002', name: 'Jennifer Walsh', dateOfBirth: '1975-07-22',
@@ -28,6 +29,7 @@ class MockDataRepository {
       facilityId: 'fac-001',
       totalAuthorizations: 12, approvedAuthorizations: 10, pendingAuthorizations: 2,
       mrn: 'MRN-0067892',
+      guardianName: 'David Walsh', guardianPhone: '(555) 019-9283', guardianRelationship: 'Spouse',
     ),
     const Patient(
       id: 'pat-003', name: 'David Kim', dateOfBirth: '1952-11-30',
@@ -110,6 +112,7 @@ class MockDataRepository {
       totalRequests: 142, approvedRequests: 128, rejectedRequests: 9,
       approvalRate: 0.901, avgProcessingTimeMs: 3200,
       cmsSpecialtyCode: '06', isActive: true,
+      availability: 'Mon, Wed, Fri 09:00 - 17:00',
     ),
     const Doctor(
       id: 'doc-002', name: 'Dr. Priya Sharma', npi: '2345678901',
@@ -118,6 +121,7 @@ class MockDataRepository {
       totalRequests: 89, approvedRequests: 79, rejectedRequests: 7,
       approvalRate: 0.888, avgProcessingTimeMs: 4100,
       cmsSpecialtyCode: '90', isActive: true,
+      availability: 'Tue, Thu 08:30 - 16:30',
     ),
     const Doctor(
       id: 'doc-003', name: 'Dr. James Wilson', npi: '3456789012',
@@ -126,6 +130,7 @@ class MockDataRepository {
       totalRequests: 67, approvedRequests: 54, rejectedRequests: 10,
       approvalRate: 0.806, avgProcessingTimeMs: 2800,
       cmsSpecialtyCode: '39', isActive: true,
+      availability: 'Mon, Tue, Thu 09:00 - 15:00',
     ),
     const Doctor(
       id: 'doc-004', name: 'Dr. Lisa Chen', npi: '4567890123',
@@ -134,6 +139,7 @@ class MockDataRepository {
       totalRequests: 98, approvedRequests: 91, rejectedRequests: 5,
       approvalRate: 0.929, avgProcessingTimeMs: 2400,
       cmsSpecialtyCode: '06', isActive: true,
+      availability: 'Wed, Thu 10:00 - 18:00',
     ),
     const Doctor(
       id: 'doc-005', name: 'Dr. Karen Patel', npi: '5678901234',
@@ -142,6 +148,7 @@ class MockDataRepository {
       totalRequests: 113, approvedRequests: 99, rejectedRequests: 11,
       approvalRate: 0.876, avgProcessingTimeMs: 3600,
       cmsSpecialtyCode: '13', isActive: true,
+      availability: 'Tue, Fri 09:00 - 17:00',
     ),
     const Doctor(
       id: 'doc-006', name: 'Dr. Robert Hayes', npi: '6789012345',
@@ -150,6 +157,7 @@ class MockDataRepository {
       totalRequests: 205, approvedRequests: 187, rejectedRequests: 14,
       approvalRate: 0.912, avgProcessingTimeMs: 2100,
       cmsSpecialtyCode: '20', isActive: true,
+      availability: 'Mon-Thu 07:00 - 15:00',
     ),
   ];
 
@@ -441,7 +449,7 @@ class MockDataRepository {
   ];
 
   // ─── Authorization Requests ────────────────────────────────────────────────
-  List<AuthorizationRequest> get authorizations => [
+  late final List<AuthorizationRequest> authorizations = [
     AuthorizationRequest(
       id: 'auth-001', authNumber: 'PA-2024-08847',
       patientId: 'pat-001', patientName: 'Robert Martinez',
@@ -643,7 +651,7 @@ class MockDataRepository {
   ];
 
   // ─── Appeals ──────────────────────────────────────────────────────────────
-  List<AppealCase> get appeals => [
+  late final List<AppealCase> appeals = [
     AppealCase(
       id: 'appeal-001', appealNumber: 'APL-2024-0442',
       authorizationId: 'auth-003', authNumber: 'PA-2024-08849',
@@ -732,7 +740,7 @@ Metropolitan General Hospital
 ''';
 
   // ─── Audit Log Entries ────────────────────────────────────────────────────
-  List<AuditLogEntry> get auditLogs => [
+  late final List<AuditLogEntry> auditLogs = [
     AuditLogEntry(
       id: 'log-001', action: 'authorization.approved',
       actorId: 'usr-001', actorName: 'Alexandra Chen', actorRole: 'Administrator',
@@ -792,6 +800,66 @@ Metropolitan General Hospital
       entryHash: 'f8h2j7k6e5i4', previousHash: 'e7g1i6j5d4h3',
       ipAddress: '10.0.0.5',
       metadata: {'resources_synced': 847, 'resource_types': ['Patient', 'Coverage', 'Claim', 'ServiceRequest']},
+    ),
+    AuditLogEntry(
+      id: 'log-007', action: 'patient.registered',
+      actorId: 'usr-006', actorName: 'Sarah Jenkins', actorRole: 'Hospital Admin',
+      resourceId: 'pat-009', resourceType: 'Patient',
+      description: 'Registered patient Emily Thompson with MRN-0099112',
+      timestamp: DateTime.now().subtract(const Duration(days: 1)),
+      entryHash: 'g9i3k8l7f6j5', previousHash: 'f8h2j7k6e5i4',
+      ipAddress: '192.168.1.100',
+      metadata: {'mrn': 'MRN-0099112', 'patient_id': 'pat-009'},
+    ),
+    AuditLogEntry(
+      id: 'log-008', action: 'doctor.added',
+      actorId: 'usr-006', actorName: 'Sarah Jenkins', actorRole: 'Hospital Admin',
+      resourceId: 'doc-006', resourceType: 'Doctor',
+      description: 'Added Dr. Robert Hayes to Metropolitan General Hospital roster',
+      timestamp: DateTime.now().subtract(const Duration(hours: 12)),
+      entryHash: 'h0j4l9m8g7k6', previousHash: 'g9i3k8l7f6j5',
+      ipAddress: '192.168.1.100',
+      metadata: {'npi': '6789012345', 'doctor_id': 'doc-006'},
+    ),
+    AuditLogEntry(
+      id: 'log-009', action: 'surgery.scheduled',
+      actorId: 'usr-006', actorName: 'Sarah Jenkins', actorRole: 'Hospital Admin',
+      resourceId: 'pat-003', resourceType: 'Patient',
+      description: 'Surgery (Lumbar Spine Fusion) scheduled for David Kim on 2026-08-25',
+      timestamp: DateTime.now().subtract(const Duration(hours: 8)),
+      entryHash: 'i1k5m0n9h8l7', previousHash: 'h0j4l9m8g7k6',
+      ipAddress: '192.168.1.100',
+      metadata: {'patient_id': 'pat-003', 'procedure': 'Lumbar Spine Fusion', 'date': '2026-08-25'},
+    ),
+    AuditLogEntry(
+      id: 'log-010', action: 'appointment.scheduled',
+      actorId: 'usr-006', actorName: 'Sarah Jenkins', actorRole: 'Hospital Admin',
+      resourceId: 'pat-001', resourceType: 'Patient',
+      description: 'Appointment scheduled for Robert Martinez with Dr. Michael Johnson on 2026-08-18',
+      timestamp: DateTime.now().subtract(const Duration(hours: 6)),
+      entryHash: 'j2l6n1o0i9m8', previousHash: 'i1k5m0n9h8l7',
+      ipAddress: '192.168.1.100',
+      metadata: {'patient_id': 'pat-001', 'doctor_id': 'doc-001', 'date': '2026-08-18'},
+    ),
+    AuditLogEntry(
+      id: 'log-011', action: 'guardian.updated',
+      actorId: 'usr-006', actorName: 'Sarah Jenkins', actorRole: 'Hospital Admin',
+      resourceId: 'pat-002', resourceType: 'Patient',
+      description: 'Guardian details updated for Jennifer Walsh (Relative: David Walsh, Phone: 555-0199)',
+      timestamp: DateTime.now().subtract(const Duration(hours: 4)),
+      entryHash: 'k3m7o2p1j0n9', previousHash: 'j2l6n1o0i9m8',
+      ipAddress: '192.168.1.100',
+      metadata: {'patient_id': 'pat-002', 'guardian_name': 'David Walsh', 'relationship': 'Spouse'},
+    ),
+    AuditLogEntry(
+      id: 'log-012', action: 'insurance.verified',
+      actorId: 'usr-006', actorName: 'Sarah Jenkins', actorRole: 'Hospital Admin',
+      resourceId: 'pat-003', resourceType: 'Patient',
+      description: 'Insurance verified for patient David Kim (UnitedHealthcare Choice Plus - Active)',
+      timestamp: DateTime.now().subtract(const Duration(hours: 2)),
+      entryHash: 'l4n8p3q2k1o0', previousHash: 'k3m7o2p1j0n9',
+      ipAddress: '192.168.1.100',
+      metadata: {'patient_id': 'pat-003', 'status': 'Active', 'plan': 'UnitedHealthcare Choice Plus'},
     ),
   ];
 
@@ -920,5 +988,35 @@ Metropolitan General Hospital
     {'diagnosis': 'Respiratory', 'icd': 'J00-J99',  'count': 184, 'pct': 0.100},
     {'diagnosis': 'Endocrine', 'icd': 'E00-E89',  'count': 156, 'pct': 0.084},
     {'diagnosis': 'Other', 'icd': 'Various',  'count': 157, 'pct': 0.085},
+  ];
+
+  // ─── Scheduled Appointments ───────────────────────────────────────────────
+  late final List<PatientAppointment> appointments = [
+    PatientAppointment(
+      id: 'apt-001',
+      patientId: 'pat-001',
+      doctorName: 'Dr. Michael Johnson',
+      dateTime: DateTime.now().add(const Duration(days: 5)),
+      reason: 'Cardiology Follow-up',
+    ),
+    PatientAppointment(
+      id: 'apt-002',
+      patientId: 'pat-002',
+      doctorName: 'Dr. Priya Sharma',
+      dateTime: DateTime.now().add(const Duration(days: 8)),
+      reason: 'Oncology Checkup',
+    ),
+  ];
+
+  // ─── Scheduled Surgeries ──────────────────────────────────────────────────
+  late final List<PatientSurgery> surgeries = [
+    PatientSurgery(
+      id: 'srg-001',
+      patientId: 'pat-003',
+      surgeonName: 'Dr. Robert Hayes',
+      operationTheatre: 'OR-3',
+      dateTime: DateTime.now().add(const Duration(days: 12)),
+      procedure: 'Lumbar Spine Fusion',
+    ),
   ];
 }

@@ -5,6 +5,15 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
+  // ─── Mockup Redesign Theme ───────────────────────────────────────────────
+  static const Color mockupTeal = Color(0xFF00BFA5);
+  static const Color mockupTealLight = Color(0xFFE0F7F4);
+  static const Color mockupPurple = Color(0xFF6E56CF);
+  static const Color mockupPurpleLight = Color(0xFFF3F0FF);
+  static const Color mockupDark = Color(0xFF111827);
+  static const Color mockupBorder = Color(0xFFE5E7EB);
+  static const Color mockupCardBg = Color(0xFFFBFBFB);
+
   // ─── Primary Brand ───────────────────────────────────────────────────────
   static const Color primary = Color(0xFF2563EB);       // Vibrant healthcare blue
   static const Color primaryLight = Color(0xFF3B82F6);
