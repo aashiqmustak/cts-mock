@@ -1,16 +1,37 @@
-# priorx / cts-mock
-
-A new Flutter project.
-
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Patient
+   ↓
+Healthcare Provider
+   ↓
+Prior Authorization Request
+   ↓
+Eligibility & Policy Validation
+   ↓
+Medical Necessity Evaluation
+   ↓
+Initial Authorization Decision
+   │
+   ├── APPROVED ──→ Treatment Authorized
+   │
+   └── DENIED
+          ↓
+      Appeal System
+          ↓
+      Appeal Eligibility Check
+          ↓
+      Denial Reason Analysis
+          ↓
+      Missing Documentation Detection
+          ↓
+      Appeal Case Preparation
+          ↓
+      Appeal Success Prediction
+          ↓
+      Human / Clinical Review
+          ↓
+      Appeal Submission
+          ↓
+      Payer Review
+          │
+          ├── APPROVED ──→ Treatment Authorized
+          │
+          └── REJECTED ──→ Further Appeal / Alternative Treatment
