@@ -5,7 +5,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../models/models.dart';
-import '../../../../repositories/mock/mock_data_repository.dart';
+import '../../../../repositories/data_repository.dart';
 
 class IntegrationsScreen extends ConsumerStatefulWidget {
   const IntegrationsScreen({super.key});
@@ -243,3 +243,4 @@ class _ResourceSyncCard extends StatelessWidget {
     return '${diff.inHours}h ago';
   }
 }
+

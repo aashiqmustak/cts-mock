@@ -7,7 +7,7 @@ import '../../../core/constants/route_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../models/models.dart';
-import '../../../repositories/mock/mock_data_repository.dart';
+import '../../../repositories/data_repository.dart';
 import '../../../core/utils/patient_portal_helper.dart';
 
 class AuthorizationDetailScreen extends ConsumerWidget {
@@ -1003,3 +1003,4 @@ class _PatientPortalExplanationCard extends StatelessWidget {
     );
   }
 }
+

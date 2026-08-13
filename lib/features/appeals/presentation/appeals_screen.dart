@@ -6,7 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../models/models.dart';
-import '../../../repositories/mock/mock_data_repository.dart';
+import '../../../repositories/data_repository.dart';
 
 class AppealsScreen extends ConsumerStatefulWidget {
   const AppealsScreen({super.key});
@@ -784,3 +784,4 @@ class _AppealStatusBadge extends StatelessWidget {
     );
   }
 }
+

@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/models.dart';
 import '../../models/user_role.dart';
-import '../../repositories/mock/mock_data_repository.dart';
+import '../../repositories/data_repository.dart';
 import 'auth_provider.dart';
 
 /// The central filtered authorizations provider.
@@ -60,3 +60,4 @@ final dashboardStatsProvider = Provider<DashboardStats>((ref) {
     fraudFlagged: auths.where((a) => a.status == AuthorizationStatus.escalated).length,
   );
 });
+

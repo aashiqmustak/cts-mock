@@ -4,7 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../repositories/mock/mock_data_repository.dart';
+import '../../../repositories/data_repository.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({super.key});
@@ -432,3 +432,4 @@ class _PlaceholderTab extends StatelessWidget {
     ]),
   );
 }
+

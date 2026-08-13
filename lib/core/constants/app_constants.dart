@@ -9,6 +9,11 @@ class AppConstants {
   static const String appVersion = '1.0.0';
   static const String companyName = 'PriorX Systems, Inc.';
 
+  // ─── Supabase Configuration ───────────────────────────────────────────────
+  static const String supabaseUrl = 'https://hhlivbsbwhrjuxvpfbba.supabase.co';
+  static const String supabaseAnonKey = 'sb_publishable_6O0GgNlaCxfPvu0Ixi8ODw_bEeIMa62';
+
+
   // ─── SLA & Performance Targets ────────────────────────────────────────────
   /// Decision must complete within 5 seconds
   static const int slaThresholdMs = 5000;

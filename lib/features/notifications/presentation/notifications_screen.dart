@@ -3,7 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../repositories/mock/mock_data_repository.dart';
+import '../../../repositories/data_repository.dart';
 
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
@@ -106,3 +106,4 @@ class NotificationsScreen extends ConsumerWidget {
     return '${diff.inDays}d';
   }
 }
+

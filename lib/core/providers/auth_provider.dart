@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/app_user.dart';
 import '../../models/user_role.dart';
 
@@ -104,20 +104,61 @@ const _kSessionEmailKey = 'mediauth_session_email';
 
 // ─── Auth Notifier ────────────────────────────────────────────────────────────
 class AuthNotifier extends StateNotifier<AuthState> {
+  final _supabase = Supabase.instance.client;
+
   AuthNotifier() : super(const AuthState(status: AuthStatus.initial)) {
     _restoreSession();
   }
 
-  /// Restore session from local storage on app start.
+  AppUser _mapSupabaseUserToAppUser(User sbUser) {
+    final email = sbUser.email ?? '';
+    final meta = sbUser.userMetadata ?? {};
+    
+    // Check if there is demo data for this email first (useful for testing with seeded accounts)
+    final demo = _demoUsers[email.trim().toLowerCase()];
+    
+    // Extract metadata values
+    final name = meta['name'] as String? ?? demo?.name ?? email.split('@').first;
+    
+    // Map role
+    UserRole role = UserRole.patient; // Default role
+    if (meta['role'] != null) {
+      final roleStr = meta['role'] as String;
+      try {
+        role = UserRole.values.firstWhere((r) => r.name == roleStr);
+      } catch (_) {}
+    } else if (demo != null) {
+      role = demo.role;
+    }
+    
+    final facility = meta['facility'] as String? ?? demo?.facility;
+    final specialization = meta['specialization'] as String? ?? demo?.specialization;
+    final licenseNumber = meta['licenseNumber'] as String? ?? demo?.licenseNumber;
+    
+    return AppUser(
+      id: sbUser.id,
+      name: name,
+      email: email,
+      role: role,
+      facility: facility,
+      specialization: specialization,
+      licenseNumber: licenseNumber,
+      isActive: true,
+      createdAt: DateTime.tryParse(sbUser.createdAt) ?? DateTime.now(),
+      lastLoginAt: DateTime.now(),
+    );
+  }
+
+  /// Restore session from Supabase on app start.
   Future<void> _restoreSession() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final email = prefs.getString(_kSessionEmailKey);
-      if (email != null && _demoUsers.containsKey(email)) {
-        final user = _demoUsers[email]!.copyWith(
-          lastLoginAt: DateTime.now(),
+      final session = _supabase.auth.currentSession;
+      final user = _supabase.auth.currentUser;
+      if (session != null && user != null) {
+        state = AuthState(
+          status: AuthStatus.authenticated,
+          user: _mapSupabaseUserToAppUser(user),
         );
-        state = AuthState(status: AuthStatus.authenticated, user: user);
       } else {
         state = const AuthState(status: AuthStatus.unauthenticated);
       }
@@ -126,35 +167,74 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  /// Sign in with email + password (mock validation).
+  /// Sign in with email + password using Supabase.
   Future<bool> signIn(String email, String password) async {
     state = state.copyWith(status: AuthStatus.loading);
-    // Simulate network latency
-    await Future.delayed(const Duration(milliseconds: 1200));
-
-    final normalizedEmail = email.trim().toLowerCase();
-    if (_demoUsers.containsKey(normalizedEmail) &&
-        _demoPasswords[normalizedEmail] == password) {
-      final user = _demoUsers[normalizedEmail]!.copyWith(
-        lastLoginAt: DateTime.now(),
+    try {
+      final response = await _supabase.auth.signInWithPassword(
+        email: email.trim(),
+        password: password,
       );
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_kSessionEmailKey, normalizedEmail);
-      state = AuthState(status: AuthStatus.authenticated, user: user);
-      return true;
+      if (response.user != null) {
+        state = AuthState(
+          status: AuthStatus.authenticated,
+          user: _mapSupabaseUserToAppUser(response.user!),
+        );
+        return true;
+      }
+    } catch (e) {
+      state = AuthState(
+        status: AuthStatus.error,
+        errorMessage: e.toString().replaceFirst('AuthException: ', ''),
+      );
     }
-
-    state = AuthState(
-      status: AuthStatus.error,
-      errorMessage: 'Invalid email or password. Use a demo account to sign in.',
-    );
     return false;
   }
 
-  /// Sign out and clear session.
+  /// Sign up a new user with Supabase.
+  Future<bool> signUp({
+    required String email,
+    required String password,
+    required String name,
+    required UserRole role,
+    String? facility,
+    String? specialization,
+    String? licenseNumber,
+  }) async {
+    state = state.copyWith(status: AuthStatus.loading);
+    try {
+      final response = await _supabase.auth.signUp(
+        email: email.trim(),
+        password: password,
+        data: {
+          'name': name,
+          'role': role.name,
+          if (facility != null) 'facility': facility,
+          if (specialization != null) 'specialization': specialization,
+          if (licenseNumber != null) 'licenseNumber': licenseNumber,
+        },
+      );
+      if (response.user != null) {
+        state = AuthState(
+          status: AuthStatus.authenticated,
+          user: _mapSupabaseUserToAppUser(response.user!),
+        );
+        return true;
+      }
+    } catch (e) {
+      state = AuthState(
+        status: AuthStatus.error,
+        errorMessage: e.toString().replaceFirst('AuthException: ', ''),
+      );
+    }
+    return false;
+  }
+
+  /// Sign out and clear Supabase session.
   Future<void> signOut() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_kSessionEmailKey);
+    try {
+      await _supabase.auth.signOut();
+    } catch (_) {}
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 
@@ -166,28 +246,48 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// Update current user's profile details.
-  void updateProfile({
+  Future<void> updateProfile({
     required String name,
     required String email,
     String? facility,
     String? specialization,
     String? licenseNumber,
-  }) {
+  }) async {
     if (state.user != null) {
-      final fullUser = AppUser(
-        id: state.user!.id,
-        name: name,
-        email: email,
-        role: state.user!.role,
-        avatarUrl: state.user!.avatarUrl,
-        facility: facility,
-        specialization: specialization,
-        licenseNumber: licenseNumber,
-        isActive: state.user!.isActive,
-        createdAt: state.user!.createdAt,
-        lastLoginAt: state.user!.lastLoginAt,
-      );
-      state = AuthState(status: AuthStatus.authenticated, user: fullUser);
+      try {
+        final response = await _supabase.auth.updateUser(
+          UserAttributes(
+            data: {
+              'name': name,
+              'facility': facility,
+              'specialization': specialization,
+              'licenseNumber': licenseNumber,
+            },
+          ),
+        );
+        if (response.user != null) {
+          state = AuthState(
+            status: AuthStatus.authenticated,
+            user: _mapSupabaseUserToAppUser(response.user!),
+          );
+        }
+      } catch (e) {
+        // Fallback to local update if Supabase fails or isn't fully configured
+        final fullUser = AppUser(
+          id: state.user!.id,
+          name: name,
+          email: email,
+          role: state.user!.role,
+          avatarUrl: state.user!.avatarUrl,
+          facility: facility,
+          specialization: specialization,
+          licenseNumber: licenseNumber,
+          isActive: state.user!.isActive,
+          createdAt: state.user!.createdAt,
+          lastLoginAt: state.user!.lastLoginAt,
+        );
+        state = AuthState(status: AuthStatus.authenticated, user: fullUser);
+      }
     }
   }
 }

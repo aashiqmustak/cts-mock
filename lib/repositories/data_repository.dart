@@ -1,14 +1,633 @@
+import 'dart:collection';
+import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/models.dart';
 import '../../core/constants/app_constants.dart';
 
-/// Comprehensive mock data repository for MediAuth AI demo.
-/// Structured to match real FHIR R4 / CMS / MEPS / DailyMed schemas.
-class MockDataRepository {
-  MockDataRepository._();
-  static final MockDataRepository instance = MockDataRepository._();
+class SyncedList<T> extends ListBase<T> {
+  final List<T> _list = [];
+  final Future<void> Function() onSync;
+
+  SyncedList({required this.onSync});
+
+  @override
+  int get length => _list.length;
+
+  @override
+  set length(int newLength) {
+    _list.length = newLength;
+    onSync();
+  }
+
+  @override
+  T operator [](int index) => _list[index];
+
+  @override
+  void operator []=(int index, T value) {
+    _list[index] = value;
+    onSync();
+  }
+
+  @override
+  void add(T element) {
+    _list.add(element);
+    onSync();
+  }
+
+  @override
+  void addAll(Iterable<T> iterable) {
+    _list.addAll(iterable);
+    onSync();
+  }
+
+  @override
+  void clear() {
+    _list.clear();
+    onSync();
+  }
+
+  @override
+  bool remove(Object? element) {
+    final res = _list.remove(element);
+    if (res) onSync();
+    return res;
+  }
+
+  @override
+  T removeAt(int index) {
+    final res = _list.removeAt(index);
+    onSync();
+    return res;
+  }
+}
+
+class DataRepository {
+  DataRepository._() {
+    patients = SyncedList<Patient>(onSync: syncPatients);
+    doctors = SyncedList<Doctor>(onSync: syncDoctors);
+    authorizations = SyncedList<AuthorizationRequest>(onSync: syncAuthorizations);
+    aiDecisions = SyncedList<AiDecision>(onSync: syncAiDecisions);
+    appeals = SyncedList<AppealCase>(onSync: syncAppeals);
+    auditLogs = SyncedList<AuditLogEntry>(onSync: syncAuditLogs);
+    notifications = SyncedList<AppNotification>(onSync: syncNotifications);
+    fhirSyncs = SyncedList<FhirResourceSync>(onSync: syncFhirSyncs);
+    appointments = SyncedList<PatientAppointment>(onSync: syncAppointments);
+    surgeries = SyncedList<PatientSurgery>(onSync: syncSurgeries);
+  }
+
+  static final DataRepository instance = DataRepository._();
+  final _supabase = Supabase.instance.client;
+
+  late final SyncedList<Patient> patients;
+  late final SyncedList<Doctor> doctors;
+  late final SyncedList<AuthorizationRequest> authorizations;
+  late final SyncedList<AiDecision> aiDecisions;
+  late final SyncedList<AppealCase> appeals;
+  late final SyncedList<AuditLogEntry> auditLogs;
+  late final SyncedList<AppNotification> notifications;
+  late final SyncedList<FhirResourceSync> fhirSyncs;
+  late final SyncedList<PatientAppointment> appointments;
+  late final SyncedList<PatientSurgery> surgeries;
+
+  bool _initialized = false;
+
+  Future<void> initialize() async {
+    if (_initialized) return;
+    try {
+      await loadFromSupabase();
+      _initialized = true;
+    } catch (e) {
+      debugPrint("Error initializing DataRepository: $e");
+    }
+  }
+
+  Future<void> loadFromSupabase() async {
+    try {
+      final response = await _supabase.from('priorx_store').select();
+      final dataMap = {for (var item in response) item['key'] as String: item['data']};
+
+      // Load patients
+      if (dataMap.containsKey('patients')) {
+        patients.clear();
+        for (var item in dataMap['patients'] as List) {
+          patients.add(_patientFromJson(item));
+        }
+      } else {
+        patients.addAll(_defaultPatients);
+        await saveToSupabase('patients', patients.map(_patientToJson).toList());
+      }
+
+      // Load doctors
+      if (dataMap.containsKey('doctors')) {
+        doctors.clear();
+        for (var item in dataMap['doctors'] as List) {
+          doctors.add(_doctorFromJson(item));
+        }
+      } else {
+        doctors.addAll(_defaultDoctors);
+        await saveToSupabase('doctors', doctors.map(_doctorToJson).toList());
+      }
+
+      // Load authorizations
+      if (dataMap.containsKey('authorizations')) {
+        authorizations.clear();
+        for (var item in dataMap['authorizations'] as List) {
+          authorizations.add(_authorizationFromJson(item));
+        }
+      } else {
+        authorizations.addAll(_defaultAuthorizations);
+        await saveToSupabase('authorizations', authorizations.map(_authorizationToJson).toList());
+      }
+
+      // Load ai_decisions
+      if (dataMap.containsKey('ai_decisions')) {
+        aiDecisions.clear();
+        for (var item in dataMap['ai_decisions'] as List) {
+          aiDecisions.add(_aiDecisionFromJson(item));
+        }
+      } else {
+        aiDecisions.addAll(_defaultAiDecisions);
+        await saveToSupabase('ai_decisions', aiDecisions.map(_aiDecisionToJson).toList());
+      }
+
+      // Load appeals
+      if (dataMap.containsKey('appeals')) {
+        appeals.clear();
+        for (var item in dataMap['appeals'] as List) {
+          appeals.add(_appealFromJson(item));
+        }
+      } else {
+        appeals.addAll(_defaultAppeals);
+        await saveToSupabase('appeals', appeals.map(_appealToJson).toList());
+      }
+
+      // Load audit_logs
+      if (dataMap.containsKey('audit_logs')) {
+        auditLogs.clear();
+        for (var item in dataMap['audit_logs'] as List) {
+          auditLogs.add(_auditLogFromJson(item));
+        }
+      } else {
+        auditLogs.addAll(_defaultAuditLogs);
+        await saveToSupabase('audit_logs', auditLogs.map(_auditLogToJson).toList());
+      }
+
+      // Load notifications
+      if (dataMap.containsKey('notifications')) {
+        notifications.clear();
+        for (var item in dataMap['notifications'] as List) {
+          notifications.add(_notificationFromJson(item));
+        }
+      } else {
+        notifications.addAll(_defaultNotifications);
+        await saveToSupabase('notifications', notifications.map(_notificationToJson).toList());
+      }
+
+      // Load fhir_syncs
+      if (dataMap.containsKey('fhir_syncs')) {
+        fhirSyncs.clear();
+        for (var item in dataMap['fhir_syncs'] as List) {
+          fhirSyncs.add(_fhirSyncFromJson(item));
+        }
+      } else {
+        fhirSyncs.addAll(_defaultFhirSyncs);
+        await saveToSupabase('fhir_syncs', fhirSyncs.map(_fhirSyncToJson).toList());
+      }
+
+      // Load appointments
+      if (dataMap.containsKey('appointments')) {
+        appointments.clear();
+        for (var item in dataMap['appointments'] as List) {
+          appointments.add(_appointmentFromJson(item));
+        }
+      } else {
+        appointments.addAll(_defaultAppointments);
+        await saveToSupabase('appointments', appointments.map(_appointmentToJson).toList());
+      }
+
+      // Load surgeries
+      if (dataMap.containsKey('surgeries')) {
+        surgeries.clear();
+        for (var item in dataMap['surgeries'] as List) {
+          surgeries.add(_surgeryFromJson(item));
+        }
+      } else {
+        surgeries.addAll(_defaultSurgeries);
+        await saveToSupabase('surgeries', surgeries.map(_surgeryToJson).toList());
+      }
+
+    } catch (e) {
+      debugPrint("Failed to load data from Supabase, using defaults: $e");
+      if (patients.isEmpty) patients.addAll(_defaultPatients);
+      if (doctors.isEmpty) doctors.addAll(_defaultDoctors);
+      if (authorizations.isEmpty) authorizations.addAll(_defaultAuthorizations);
+      if (aiDecisions.isEmpty) aiDecisions.addAll(_defaultAiDecisions);
+      if (appeals.isEmpty) appeals.addAll(_defaultAppeals);
+      if (auditLogs.isEmpty) auditLogs.addAll(_defaultAuditLogs);
+      if (notifications.isEmpty) notifications.addAll(_defaultNotifications);
+      if (fhirSyncs.isEmpty) fhirSyncs.addAll(_defaultFhirSyncs);
+      if (appointments.isEmpty) appointments.addAll(_defaultAppointments);
+      if (surgeries.isEmpty) surgeries.addAll(_defaultSurgeries);
+    }
+  }
+
+  Future<void> saveToSupabase(String key, List<Map<String, dynamic>> jsonData) async {
+    try {
+      await _supabase.from('priorx_store').upsert({
+        'key': key,
+        'data': jsonData,
+      });
+    } catch (e) {
+      debugPrint("Failed to save $key to Supabase: $e");
+    }
+  }
+
+  Future<void> syncPatients() => saveToSupabase('patients', patients.map(_patientToJson).toList());
+  Future<void> syncDoctors() => saveToSupabase('doctors', doctors.map(_doctorToJson).toList());
+  Future<void> syncAuthorizations() => saveToSupabase('authorizations', authorizations.map(_authorizationToJson).toList());
+  Future<void> syncAiDecisions() => saveToSupabase('ai_decisions', aiDecisions.map(_aiDecisionToJson).toList());
+  Future<void> syncAppeals() => saveToSupabase('appeals', appeals.map(_appealToJson).toList());
+  Future<void> syncAuditLogs() => saveToSupabase('audit_logs', auditLogs.map(_auditLogToJson).toList());
+  Future<void> syncNotifications() => saveToSupabase('notifications', notifications.map(_notificationToJson).toList());
+  Future<void> syncFhirSyncs() => saveToSupabase('fhir_syncs', fhirSyncs.map(_fhirSyncToJson).toList());
+  Future<void> syncAppointments() => saveToSupabase('appointments', appointments.map(_appointmentToJson).toList());
+  Future<void> syncSurgeries() => saveToSupabase('surgeries', surgeries.map(_surgeryToJson).toList());
+
+  // --- Json Mapper Helpers ---
+
+  static Map<String, dynamic> _patientToJson(Patient p) => {
+    'id': p.id,
+    'name': p.name,
+    'dateOfBirth': p.dateOfBirth,
+    'gender': p.gender,
+    'insuranceId': p.insuranceId,
+    'insurancePlan': p.insurancePlan,
+    'payer': p.payer,
+    'primaryDiagnosis': p.primaryDiagnosis,
+    'chronicConditions': p.chronicConditions,
+    'primaryPhysicianId': p.primaryPhysicianId,
+    'primaryPhysicianName': p.primaryPhysicianName,
+    'contactPhone': p.contactPhone,
+    'contactEmail': p.contactEmail,
+    'facilityId': p.facilityId,
+    'totalAuthorizations': p.totalAuthorizations,
+    'approvedAuthorizations': p.approvedAuthorizations,
+    'pendingAuthorizations': p.pendingAuthorizations,
+    'lastVisit': p.lastVisit?.toIso8601String(),
+    'mrn': p.mrn,
+    'guardianName': p.guardianName,
+    'guardianPhone': p.guardianPhone,
+    'guardianRelationship': p.guardianRelationship,
+  };
+
+  static Patient _patientFromJson(dynamic json) => Patient(
+    id: json['id'] ?? '',
+    name: json['name'] ?? '',
+    dateOfBirth: json['dateOfBirth'] ?? '',
+    gender: json['gender'] ?? '',
+    insuranceId: json['insuranceId'] ?? '',
+    insurancePlan: json['insurancePlan'] ?? '',
+    payer: json['payer'] ?? '',
+    primaryDiagnosis: json['primaryDiagnosis'],
+    chronicConditions: List<String>.from(json['chronicConditions'] ?? []),
+    primaryPhysicianId: json['primaryPhysicianId'],
+    primaryPhysicianName: json['primaryPhysicianName'],
+    contactPhone: json['contactPhone'] ?? '',
+    contactEmail: json['contactEmail'],
+    facilityId: json['facilityId'] ?? '',
+    totalAuthorizations: json['totalAuthorizations'] ?? 0,
+    approvedAuthorizations: json['approvedAuthorizations'] ?? 0,
+    pendingAuthorizations: json['pendingAuthorizations'] ?? 0,
+    lastVisit: json['lastVisit'] != null ? DateTime.tryParse(json['lastVisit']) : null,
+    mrn: json['mrn'],
+    guardianName: json['guardianName'],
+    guardianPhone: json['guardianPhone'],
+    guardianRelationship: json['guardianRelationship'],
+  );
+
+  static Map<String, dynamic> _doctorToJson(Doctor d) => {
+    'id': d.id,
+    'name': d.name,
+    'npi': d.npi,
+    'specialization': d.specialization,
+    'facility': d.facility,
+    'email': d.email,
+    'phone': d.phone,
+    'totalRequests': d.totalRequests,
+    'approvedRequests': d.approvedRequests,
+    'rejectedRequests': d.rejectedRequests,
+    'approvalRate': d.approvalRate,
+    'avgProcessingTimeMs': d.avgProcessingTimeMs,
+    'cmsSpecialtyCode': d.cmsSpecialtyCode,
+    'isActive': d.isActive,
+    'availability': d.availability,
+  };
+
+  static Doctor _doctorFromJson(dynamic json) => Doctor(
+    id: json['id'] ?? '',
+    name: json['name'] ?? '',
+    npi: json['npi'] ?? '',
+    specialization: json['specialization'] ?? '',
+    facility: json['facility'] ?? '',
+    email: json['email'] ?? '',
+    phone: json['phone'] ?? '',
+    totalRequests: json['totalRequests'] ?? 0,
+    approvedRequests: json['approvedRequests'] ?? 0,
+    rejectedRequests: json['rejectedRequests'] ?? 0,
+    approvalRate: (json['approvalRate'] as num?)?.toDouble() ?? 0.0,
+    avgProcessingTimeMs: (json['avgProcessingTimeMs'] as num?)?.toDouble() ?? 0.0,
+    cmsSpecialtyCode: json['cmsSpecialtyCode'],
+    isActive: json['isActive'] ?? true,
+    availability: json['availability'],
+  );
+
+  static Map<String, dynamic> _authorizationToJson(AuthorizationRequest r) => {
+    'id': r.id,
+    'authNumber': r.authNumber,
+    'patientId': r.patientId,
+    'patientName': r.patientName,
+    'patientDob': r.patientDob,
+    'patientInsuranceId': r.patientInsuranceId,
+    'requestingDoctorId': r.requestingDoctorId,
+    'requestingDoctorName': r.requestingDoctorName,
+    'facilityName': r.facilityName,
+    'facilityNpi': r.facilityNpi,
+    'diagnosisCode': r.diagnosisCode,
+    'diagnosisDescription': r.diagnosisDescription,
+    'procedureCode': r.procedureCode,
+    'procedureDescription': r.procedureDescription,
+    'drugName': r.drugName,
+    'drugNdc': r.drugNdc,
+    'insurancePlanId': r.insurancePlanId,
+    'insurancePlanName': r.insurancePlanName,
+    'status': r.status.name,
+    'priority': r.priority.name,
+    'requestedAt': r.requestedAt.toIso8601String(),
+    'reviewedAt': r.reviewedAt?.toIso8601String(),
+    'decidedAt': r.decidedAt?.toIso8601String(),
+    'processingTimeMs': r.processingTimeMs,
+    'reviewerNotes': r.reviewerNotes,
+    'rejectionReason': r.rejectionReason,
+    'policyClauseCited': r.policyClauseCited,
+    'documentIds': r.documentIds,
+    'aiDecisionId': r.aiDecisionId,
+    'isUrgent': r.isUrgent,
+    'slaStatus': r.slaStatus,
+    'dataSource': r.dataSource,
+    'cmsNpiNumber': r.cmsNpiNumber,
+    'cmsSpecialty': r.cmsSpecialty,
+  };
+
+  static AuthorizationRequest _authorizationFromJson(dynamic json) => AuthorizationRequest(
+    id: json['id'] ?? '',
+    authNumber: json['authNumber'] ?? '',
+    patientId: json['patientId'] ?? '',
+    patientName: json['patientName'] ?? '',
+    patientDob: json['patientDob'] ?? '',
+    patientInsuranceId: json['patientInsuranceId'] ?? '',
+    requestingDoctorId: json['requestingDoctorId'] ?? '',
+    requestingDoctorName: json['requestingDoctorName'] ?? '',
+    facilityName: json['facilityName'] ?? '',
+    facilityNpi: json['facilityNpi'] ?? '',
+    diagnosisCode: json['diagnosisCode'] ?? '',
+    diagnosisDescription: json['diagnosisDescription'] ?? '',
+    procedureCode: json['procedureCode'] ?? '',
+    procedureDescription: json['procedureDescription'] ?? '',
+    drugName: json['drugName'],
+    drugNdc: json['drugNdc'],
+    insurancePlanId: json['insurancePlanId'] ?? '',
+    insurancePlanName: json['insurancePlanName'] ?? '',
+    status: AuthorizationStatus.values.firstWhere((e) => e.name == json['status'], orElse: () => AuthorizationStatus.pending),
+    priority: AuthorizationPriority.values.firstWhere((e) => e.name == json['priority'], orElse: () => AuthorizationPriority.routine),
+    requestedAt: DateTime.tryParse(json['requestedAt'] ?? '') ?? DateTime.now(),
+    reviewedAt: json['reviewedAt'] != null ? DateTime.tryParse(json['reviewedAt']) : null,
+    decidedAt: json['decidedAt'] != null ? DateTime.tryParse(json['decidedAt']) : null,
+    processingTimeMs: json['processingTimeMs'],
+    reviewerNotes: json['reviewerNotes'],
+    rejectionReason: json['rejectionReason'],
+    policyClauseCited: json['policyClauseCited'],
+    documentIds: List<String>.from(json['documentIds'] ?? []),
+    aiDecisionId: json['aiDecisionId'],
+    isUrgent: json['isUrgent'] ?? false,
+    slaStatus: json['slaStatus'],
+    dataSource: json['dataSource'],
+    cmsNpiNumber: json['cmsNpiNumber'],
+    cmsSpecialty: json['cmsSpecialty'],
+  );
+
+  static Map<String, dynamic> _reasoningStepToJson(AiReasoningStep s) => {
+    'stepNumber': s.stepNumber,
+    'title': s.title,
+    'description': s.description,
+    'citedValue': s.citedValue,
+    'policyRef': s.policyRef,
+    'dataSource': s.dataSource,
+    'passed': s.passed,
+    'score': s.score,
+    'details': s.details,
+  };
+
+  static AiReasoningStep _reasoningStepFromJson(dynamic json) => AiReasoningStep(
+    stepNumber: json['stepNumber'] ?? 0,
+    title: json['title'] ?? '',
+    description: json['description'] ?? '',
+    citedValue: json['citedValue'],
+    policyRef: json['policyRef'],
+    dataSource: json['dataSource'] ?? '',
+    passed: json['passed'] ?? false,
+    score: (json['score'] as num?)?.toDouble(),
+    details: List<String>.from(json['details'] ?? []),
+  );
+
+  static Map<String, dynamic> _aiDecisionToJson(AiDecision d) => {
+    'id': d.id,
+    'authorizationId': d.authorizationId,
+    'recommendation': d.recommendation,
+    'confidenceScore': d.confidenceScore,
+    'medicalNecessityScore': d.medicalNecessityScore,
+    'riskScore': d.riskScore,
+    'appealLikelihood': d.appealLikelihood,
+    'appealConfidenceLow': d.appealConfidenceLow,
+    'appealConfidenceHigh': d.appealConfidenceHigh,
+    'autoEscalated': d.autoEscalated,
+    'reasoningChain': d.reasoningChain.map(_reasoningStepToJson).toList(),
+    'finalJustification': d.finalJustification,
+    'processedAt': d.processedAt.toIso8601String(),
+    'processingTimeMs': d.processingTimeMs,
+    'modelVersion': d.modelVersion,
+    'fraudSignals': d.fraudSignals,
+  };
+
+  static AiDecision _aiDecisionFromJson(dynamic json) => AiDecision(
+    id: json['id'] ?? '',
+    authorizationId: json['authorizationId'] ?? '',
+    recommendation: json['recommendation'] ?? '',
+    confidenceScore: (json['confidenceScore'] as num?)?.toDouble() ?? 0.0,
+    medicalNecessityScore: (json['medicalNecessityScore'] as num?)?.toDouble() ?? 0.0,
+    riskScore: (json['riskScore'] as num?)?.toDouble() ?? 0.0,
+    appealLikelihood: (json['appealLikelihood'] as num?)?.toDouble() ?? 0.0,
+    appealConfidenceLow: (json['appealConfidenceLow'] as num?)?.toDouble(),
+    appealConfidenceHigh: (json['appealConfidenceHigh'] as num?)?.toDouble(),
+    autoEscalated: json['autoEscalated'] ?? false,
+    reasoningChain: (json['reasoningChain'] as List? ?? []).map(_reasoningStepFromJson).toList(),
+    finalJustification: json['finalJustification'] ?? '',
+    processedAt: DateTime.tryParse(json['processedAt'] ?? '') ?? DateTime.now(),
+    processingTimeMs: json['processingTimeMs'] ?? 0,
+    modelVersion: json['modelVersion'] ?? '',
+    fraudSignals: Map<String, double>.from(json['fraudSignals'] ?? {}),
+  );
+
+  static Map<String, dynamic> _appealToJson(AppealCase c) => {
+    'id': c.id,
+    'appealNumber': c.appealNumber,
+    'authorizationId': c.authorizationId,
+    'authNumber': c.authNumber,
+    'patientName': c.patientName,
+    'filedById': c.filedById,
+    'filedByName': c.filedByName,
+    'status': c.status.name,
+    'filedAt': c.filedAt.toIso8601String(),
+    'decidedAt': c.decidedAt?.toIso8601String(),
+    'groundsForAppeal': c.groundsForAppeal,
+    'supportingEvidence': c.supportingEvidence,
+    'aiSuccessProbability': c.aiSuccessProbability,
+    'aiProbabilityLow': c.aiProbabilityLow,
+    'aiProbabilityHigh': c.aiProbabilityHigh,
+    'draftAppealLetter': c.draftAppealLetter,
+    'rejectionReason': c.rejectionReason,
+    'documentIds': c.documentIds,
+  };
+
+  static AppealCase _appealFromJson(dynamic json) => AppealCase(
+    id: json['id'] ?? '',
+    appealNumber: json['appealNumber'] ?? '',
+    authorizationId: json['authorizationId'] ?? '',
+    authNumber: json['authNumber'] ?? '',
+    patientName: json['patientName'] ?? '',
+    filedById: json['filedById'] ?? '',
+    filedByName: json['filedByName'] ?? '',
+    status: AppealStatus.values.firstWhere((e) => e.name == json['status'], orElse: () => AppealStatus.submitted),
+    filedAt: DateTime.tryParse(json['filedAt'] ?? '') ?? DateTime.now(),
+    decidedAt: json['decidedAt'] != null ? DateTime.tryParse(json['decidedAt']) : null,
+    groundsForAppeal: json['groundsForAppeal'] ?? '',
+    supportingEvidence: json['supportingEvidence'],
+    aiSuccessProbability: (json['aiSuccessProbability'] as num?)?.toDouble() ?? 0.0,
+    aiProbabilityLow: (json['aiProbabilityLow'] as num?)?.toDouble(),
+    aiProbabilityHigh: (json['aiProbabilityHigh'] as num?)?.toDouble(),
+    draftAppealLetter: json['draftAppealLetter'],
+    rejectionReason: json['rejectionReason'],
+    documentIds: List<String>.from(json['documentIds'] ?? []),
+  );
+
+  static Map<String, dynamic> _auditLogToJson(AuditLogEntry e) => {
+    'id': e.id,
+    'action': e.action,
+    'actorId': e.actorId,
+    'actorName': e.actorName,
+    'actorRole': e.actorRole,
+    'resourceId': e.resourceId,
+    'resourceType': e.resourceType,
+    'description': e.description,
+    'metadata': e.metadata,
+    'timestamp': e.timestamp.toIso8601String(),
+    'entryHash': e.entryHash,
+    'previousHash': e.previousHash,
+    'ipAddress': e.ipAddress,
+  };
+
+  static AuditLogEntry _auditLogFromJson(dynamic json) => AuditLogEntry(
+    id: json['id'] ?? '',
+    action: json['action'] ?? '',
+    actorId: json['actorId'] ?? '',
+    actorName: json['actorName'] ?? '',
+    actorRole: json['actorRole'] ?? '',
+    resourceId: json['resourceId'],
+    resourceType: json['resourceType'],
+    description: json['description'] ?? '',
+    metadata: Map<String, dynamic>.from(json['metadata'] ?? {}),
+    timestamp: DateTime.tryParse(json['timestamp'] ?? '') ?? DateTime.now(),
+    entryHash: json['entryHash'] ?? '',
+    previousHash: json['previousHash'],
+    ipAddress: json['ipAddress'] ?? '',
+  );
+
+  static Map<String, dynamic> _notificationToJson(AppNotification n) => {
+    'id': n.id,
+    'title': n.title,
+    'message': n.message,
+    'type': n.type.name,
+    'isRead': n.isRead,
+    'resourceId': n.resourceId,
+    'resourceType': n.resourceType,
+    'createdAt': n.createdAt.toIso8601String(),
+  };
+
+  static AppNotification _notificationFromJson(dynamic json) => AppNotification(
+    id: json['id'] ?? '',
+    title: json['title'] ?? '',
+    message: json['message'] ?? '',
+    type: NotificationType.values.firstWhere((e) => e.name == json['type'], orElse: () => NotificationType.system),
+    isRead: json['isRead'] ?? false,
+    resourceId: json['resourceId'],
+    resourceType: json['resourceType'],
+    createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
+  );
+
+  static Map<String, dynamic> _fhirSyncToJson(FhirResourceSync s) => {
+    'resourceType': s.resourceType,
+    'status': s.status.name,
+    'syncedCount': s.syncedCount,
+    'lastSyncAt': s.lastSyncAt?.toIso8601String(),
+    'errorMessage': s.errorMessage,
+    'pendingCount': s.pendingCount,
+  };
+
+  static FhirResourceSync _fhirSyncFromJson(dynamic json) => FhirResourceSync(
+    resourceType: json['resourceType'] ?? '',
+    status: FhirSyncStatus.values.firstWhere((e) => e.name == json['status'], orElse: () => FhirSyncStatus.healthy),
+    syncedCount: json['syncedCount'] ?? 0,
+    lastSyncAt: json['lastSyncAt'] != null ? DateTime.tryParse(json['lastSyncAt']) : null,
+    errorMessage: json['errorMessage'],
+    pendingCount: json['pendingCount'],
+  );
+
+  static Map<String, dynamic> _appointmentToJson(PatientAppointment a) => {
+    'id': a.id,
+    'patientId': a.patientId,
+    'doctorName': a.doctorName,
+    'dateTime': a.dateTime.toIso8601String(),
+    'reason': a.reason,
+  };
+
+  static PatientAppointment _appointmentFromJson(dynamic json) => PatientAppointment(
+    id: json['id'] ?? '',
+    patientId: json['patientId'] ?? '',
+    doctorName: json['doctorName'] ?? '',
+    dateTime: DateTime.tryParse(json['dateTime'] ?? '') ?? DateTime.now(),
+    reason: json['reason'] ?? '',
+  );
+
+  static Map<String, dynamic> _surgeryToJson(PatientSurgery s) => {
+    'id': s.id,
+    'patientId': s.patientId,
+    'surgeonName': s.surgeonName,
+    'operationTheatre': s.operationTheatre,
+    'dateTime': s.dateTime.toIso8601String(),
+    'procedure': s.procedure,
+  };
+
+  static PatientSurgery _surgeryFromJson(dynamic json) => PatientSurgery(
+    id: json['id'] ?? '',
+    patientId: json['patientId'] ?? '',
+    surgeonName: json['surgeonName'] ?? '',
+    operationTheatre: json['operationTheatre'] ?? '',
+    dateTime: DateTime.tryParse(json['dateTime'] ?? '') ?? DateTime.now(),
+    procedure: json['procedure'] ?? '',
+  );
+
 
   // ─── Patients ─────────────────────────────────────────────────────────────
-  final List<Patient> patients = [
+  static const List<Patient> _defaultPatients = [
     const Patient(
       id: 'pat-001', name: 'Robert Martinez', dateOfBirth: '1968-03-15',
       gender: 'Male', insuranceId: 'BCBS-789012', insurancePlan: 'BlueCross PPO Premium',
@@ -104,7 +723,7 @@ class MockDataRepository {
   ];
 
   // ─── Doctors ──────────────────────────────────────────────────────────────
-  final List<Doctor> doctors = [
+  static const List<Doctor> _defaultDoctors = [
     const Doctor(
       id: 'doc-001', name: 'Dr. Michael Johnson', npi: '1234567890',
       specialization: 'Cardiology', facility: 'Metropolitan General Hospital',
@@ -162,7 +781,7 @@ class MockDataRepository {
   ];
 
   // ─── AI Decisions ─────────────────────────────────────────────────────────
-  List<AiDecision> get aiDecisions => [
+  static final List<AiDecision> _defaultAiDecisions = [
     AiDecision(
       id: 'ai-001',
       authorizationId: 'auth-001',
@@ -449,7 +1068,7 @@ class MockDataRepository {
   ];
 
   // ─── Authorization Requests ────────────────────────────────────────────────
-  late final List<AuthorizationRequest> authorizations = [
+  static final List<AuthorizationRequest> _defaultAuthorizations = [
     AuthorizationRequest(
       id: 'auth-001', authNumber: 'PA-2024-08847',
       patientId: 'pat-001', patientName: 'Robert Martinez',
@@ -651,7 +1270,7 @@ class MockDataRepository {
   ];
 
   // ─── Appeals ──────────────────────────────────────────────────────────────
-  late final List<AppealCase> appeals = [
+  static final List<AppealCase> _defaultAppeals = [
     AppealCase(
       id: 'appeal-001', appealNumber: 'APL-2024-0442',
       authorizationId: 'auth-003', authNumber: 'PA-2024-08849',
@@ -740,7 +1359,7 @@ Metropolitan General Hospital
 ''';
 
   // ─── Audit Log Entries ────────────────────────────────────────────────────
-  late final List<AuditLogEntry> auditLogs = [
+  static final List<AuditLogEntry> _defaultAuditLogs = [
     AuditLogEntry(
       id: 'log-001', action: 'authorization.approved',
       actorId: 'usr-001', actorName: 'Alexandra Chen', actorRole: 'Administrator',
@@ -864,7 +1483,7 @@ Metropolitan General Hospital
   ];
 
   // ─── Notifications ────────────────────────────────────────────────────────
-  List<AppNotification> get notifications => [
+  static final List<AppNotification> _defaultNotifications = [
     AppNotification(
       id: 'notif-001', title: 'Authorization Approved',
       message: 'PA-2024-08847 for Robert Martinez has been automatically approved (94% confidence).',
@@ -902,7 +1521,7 @@ Metropolitan General Hospital
   ];
 
   // ─── FHIR Resource Syncs ──────────────────────────────────────────────────
-  List<FhirResourceSync> get fhirSyncs => [
+  static final List<FhirResourceSync> _defaultFhirSyncs = [
     FhirResourceSync(
       resourceType: 'Patient', status: FhirSyncStatus.healthy,
       syncedCount: 1284, lastSyncAt: DateTime.now().subtract(const Duration(minutes: 15)),
@@ -991,7 +1610,7 @@ Metropolitan General Hospital
   ];
 
   // ─── Scheduled Appointments ───────────────────────────────────────────────
-  late final List<PatientAppointment> appointments = [
+  static final List<PatientAppointment> _defaultAppointments = [
     PatientAppointment(
       id: 'apt-001',
       patientId: 'pat-001',
@@ -1009,7 +1628,7 @@ Metropolitan General Hospital
   ];
 
   // ─── Scheduled Surgeries ──────────────────────────────────────────────────
-  late final List<PatientSurgery> surgeries = [
+  static final List<PatientSurgery> _defaultSurgeries = [
     PatientSurgery(
       id: 'srg-001',
       patientId: 'pat-003',
@@ -1020,3 +1639,5 @@ Metropolitan General Hospital
     ),
   ];
 }
+
+typedef MockDataRepository = DataRepository;
