@@ -53,14 +53,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 const SizedBox(height: 24),
 
                 // Logo
-                Container(
-                  width: 64, height: 64,
-                  decoration: BoxDecoration(
-                    gradient: AppColors.primaryGradient,
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: const Icon(Icons.lock_reset_rounded,
-                      color: Colors.white, size: 32),
+                Image.asset(
+                  'assets/images/priorx_logo.png',
+                  width: 72,
+                  height: 72,
+                  fit: BoxFit.contain,
                 ).animate().scale(curve: Curves.elasticOut, duration: 500.ms),
 
                 const SizedBox(height: 24),

@@ -10,9 +10,10 @@ import '../../../core/constants/route_constants.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../models/user_role.dart';
+import 'widgets/priorx_auth_widgets.dart';
 
 /// Redesigned PriorX Healthcare Insurance Login Screen.
-/// Preserves 100% of underlying controllers, callbacks, Riverpod auth, and navigation.
+/// Fits 100% inside a single viewport — NO scrolling.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -28,7 +29,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
   bool _isLoading = false;
   bool _rememberMe = true;
   String? _errorMsg;
-  int _selectedDemoRole = 0; // 0=admin, 1=doctor, 2=reviewer, 3=staff, 4=patient, 5=hospAdmin
+  int _selectedDemoRole = 0;
   late AnimationController _bgAnimationCtrl;
 
   @override
@@ -39,7 +40,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
       duration: const Duration(seconds: 20),
     )..repeat(reverse: true);
 
-    // Default pre-fill to first demo credential for fast testing
     _fillDemo(0);
   }
 
@@ -88,96 +88,119 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final isMobile = size.width < 900;
+    final vw = size.width;
+    final vh = size.height;
+    final isMobile = vw < 900;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: Stack(
         children: [
-          // Ambient Healthcare Soft Gradient Blobs
+          // Ambient Soft Background
           Positioned.fill(
             child: _HealthcareAmbientBackground(animation: _bgAnimationCtrl),
           ),
 
-          // Main Layout Wrapper
+          // Main Fixed Viewport Layout
           SafeArea(
-            child: Column(
-              children: [
-                // Top Mobile Bar (shown only on mobile screens)
-                if (isMobile)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 24, right: 24, top: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
-                        _PriorXLogoHeader(),
-                        _TopControlsHeader(),
-                      ],
-                    ),
-                  ),
-
-                // Main Split Content View
-                Expanded(
-                  child: Center(
-                    child: SingleChildScrollView(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isMobile ? 16 : 40,
-                        vertical: isMobile ? 16 : 24,
+            child: SizedBox(
+              width: vw,
+              height: vh,
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isMobile ? 12 : 28,
+                  vertical: isMobile ? 8 : 12,
+                ),
+                child: Column(
+                  children: [
+                    // Mobile Top Bar
+                    if (isMobile)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: const [
+                            Flexible(child: PriorXLogoHeader(height: 26)),
+                            SizedBox(width: 6),
+                            PriorXTopControlsHeader(compact: true),
+                          ],
+                        ),
                       ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // Left Side: Promotional Healthcare Section (Desktop Only)
-                          if (!isMobile)
-                            const Expanded(
-                              flex: 12,
-                              child: _LeftHealthcarePromotionalSection(),
+
+                    // Main Viewport Center Area (No ScrollView)
+                    Expanded(
+                      child: Center(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Container(
+                            constraints: BoxConstraints(
+                              maxWidth: isMobile ? math.min(480, vw - 24) : math.min(1500, vw - 48),
+                              maxHeight: math.max(300, vh - (isMobile ? 50 : 70)),
                             ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                // Left Side: Promotional Section (Desktop Only)
+                                if (!isMobile)
+                                  Expanded(
+                                    flex: 52,
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: PriorXLeftPromotionalSection(vh: vh),
+                                    ),
+                                  ),
 
-                          if (!isMobile) const SizedBox(width: 48),
+                                if (!isMobile) SizedBox(width: vw > 1400 ? 36 : 20),
 
-                          // Right Side: Login Card
-                          SizedBox(
-                            width: isMobile ? size.width : 480,
-                            child: _LoginCard(
-                              formKey: _formKey,
-                              emailCtrl: _emailCtrl,
-                              passCtrl: _passCtrl,
-                              obscurePass: _obscurePass,
-                              isLoading: _isLoading,
-                              rememberMe: _rememberMe,
-                              errorMsg: _errorMsg,
-                              selectedDemo: _selectedDemoRole,
-                              onTogglePass: () => setState(() => _obscurePass = !_obscurePass),
-                              onToggleRemember: (val) => setState(() => _rememberMe = val ?? false),
-                              onSignIn: _signIn,
-                              onFillDemo: _fillDemo,
-                              onForgotPass: () => context.go(RouteNames.forgotPassword),
-                              onRegister: () => context.go(RouteNames.register),
-                              isMobile: isMobile,
+                                // Right Side: Login Card
+                                Expanded(
+                                  flex: isMobile ? 1 : 48,
+                                  child: Align(
+                                    alignment: Alignment.center,
+                                    child: _LoginCard(
+                                      formKey: _formKey,
+                                      emailCtrl: _emailCtrl,
+                                      passCtrl: _passCtrl,
+                                      obscurePass: _obscurePass,
+                                      isLoading: _isLoading,
+                                      rememberMe: _rememberMe,
+                                      errorMsg: _errorMsg,
+                                      selectedDemo: _selectedDemoRole,
+                                      onTogglePass: () => setState(() => _obscurePass = !_obscurePass),
+                                      onToggleRemember: (val) => setState(() => _rememberMe = val ?? false),
+                                      onSignIn: _signIn,
+                                      onFillDemo: _fillDemo,
+                                      onForgotPass: () => context.go(RouteNames.forgotPassword),
+                                      onRegister: () => context.go(RouteNames.register),
+                                      isMobile: isMobile,
+                                      vh: vh,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                ),
 
-                // Footer
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12, top: 4),
-                  child: Text(
-                    'PRIORX HEALTH INSURANCE PLATFORM · Protecting lives. Building trust.',
-                    style: TextStyle(
-                      color: const Color(0xFF64748B).withOpacity(0.8),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 0.4,
+                    // Footer
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4, bottom: 2),
+                      child: Text(
+                        'PRIORX HEALTH INSURANCE PLATFORM · Protecting lives. Building trust.',
+                        style: TextStyle(
+                          color: const Color(0xFF64748B).withOpacity(0.8),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.3,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
-                    textAlign: TextAlign.center,
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ],
@@ -201,10 +224,26 @@ class _HealthcareAmbientBackground extends StatelessWidget {
 
         return Stack(
           children: [
-            // Top Left Soft Lavender Blob
             Positioned(
-              top: -80 + (20 * math.sin(angle)),
-              left: -80 + (20 * math.cos(angle)),
+              top: -80 + (15 * math.sin(angle)),
+              left: -80 + (15 * math.cos(angle)),
+              child: Container(
+                width: 400,
+                height: 400,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      const Color(0xFFE0E7FF).withOpacity(0.5),
+                      const Color(0xFFE0E7FF).withOpacity(0.0),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: -100 + (20 * math.cos(angle)),
+              right: -100 + (20 * math.sin(angle)),
               child: Container(
                 width: 450,
                 height: 450,
@@ -212,25 +251,7 @@ class _HealthcareAmbientBackground extends StatelessWidget {
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      const Color(0xFFE0E7FF).withOpacity(0.6),
-                      const Color(0xFFE0E7FF).withOpacity(0.0),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            // Bottom Right Soft Cyan/Blue Blob
-            Positioned(
-              bottom: -100 + (30 * math.cos(angle)),
-              right: -100 + (30 * math.sin(angle)),
-              child: Container(
-                width: 500,
-                height: 500,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      const Color(0xFFDDD6FE).withOpacity(0.5),
+                      const Color(0xFFDDD6FE).withOpacity(0.4),
                       const Color(0xFFDDD6FE).withOpacity(0.0),
                     ],
                   ),
@@ -240,524 +261,6 @@ class _HealthcareAmbientBackground extends StatelessWidget {
           ],
         );
       },
-    );
-  }
-}
-
-// ─── PriorX Logo Header ───────────────────────────────────────────────────────
-class _PriorXLogoHeader extends StatelessWidget {
-  const _PriorXLogoHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF2563EB), Color(0xFF4F46E5)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF2563EB).withOpacity(0.25),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: const Icon(
-            PhosphorIconsRegular.heartbeat,
-            color: Colors.white,
-            size: 22,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: const [
-            Text(
-              'PRIORX',
-              style: TextStyle(
-                color: Color(0xFF0F172A),
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.5,
-              ),
-            ),
-            Text(
-              'HEALTH INSURANCE',
-              style: TextStyle(
-                color: Color(0xFF2563EB),
-                fontSize: 9,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.4,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-// ─── Top Controls Header (Theme & Language Selector) ─────────────────────────
-class _TopControlsHeader extends StatelessWidget {
-  const _TopControlsHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Theme toggle button placeholder
-        Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-          ),
-          child: const Icon(
-            PhosphorIconsRegular.sun,
-            size: 18,
-            color: Color(0xFF334155),
-          ),
-        ),
-        const SizedBox(width: 8),
-        // Language selector placeholder
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-          ),
-          child: Row(
-            children: const [
-              Icon(PhosphorIconsRegular.globe, size: 16, color: Color(0xFF334155)),
-              SizedBox(width: 6),
-              Text(
-                'English',
-                style: TextStyle(
-                  color: Color(0xFF1E293B),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              SizedBox(width: 4),
-              Icon(PhosphorIconsRegular.caretDown, size: 12, color: Color(0xFF64748B)),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ─── Left Side: Healthcare Promotional Section ────────────────────────────────
-class _LeftHealthcarePromotionalSection extends StatelessWidget {
-  const _LeftHealthcarePromotionalSection();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        // Top Brand Header
-        const _PriorXLogoHeader().animate().fadeIn(duration: 500.ms).slideX(begin: -0.1),
-
-        const SizedBox(height: 32),
-
-        // Headline
-        RichText(
-          text: TextSpan(
-            style: const TextStyle(
-              fontSize: 38,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF0F172A),
-              height: 1.15,
-              letterSpacing: -1.0,
-            ),
-            children: [
-              const TextSpan(text: 'Care today.\n'),
-              TextSpan(
-                text: 'Covered',
-                style: TextStyle(
-                  foreground: Paint()
-                    ..shader = const LinearGradient(
-                      colors: [Color(0xFF2563EB), Color(0xFF7C3AED)],
-                    ).createShader(const Rect.fromLTWH(0.0, 0.0, 200.0, 70.0)),
-                ),
-              ),
-              const TextSpan(text: ' always.'),
-            ],
-          ),
-        ).animate(delay: 100.ms).fadeIn(duration: 600.ms).slideX(begin: -0.1),
-
-        const SizedBox(height: 14),
-
-        // Subtitle
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 440),
-          child: const Text(
-            'Smart health insurance plans that put you and your family first. Sub-second clinical approvals powered by AI.',
-            style: TextStyle(
-              color: Color(0xFF64748B),
-              fontSize: 15,
-              height: 1.5,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-        ).animate(delay: 200.ms).fadeIn(duration: 600.ms),
-
-        const SizedBox(height: 28),
-
-        // 4 Benefit Tiles
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
-          child: Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: const [
-              _BenefitTile(
-                icon: PhosphorIconsRegular.shieldCheck,
-                title: 'Health Coverage',
-                subtitle: 'Comprehensive plans for every need',
-              ),
-              _BenefitTile(
-                icon: PhosphorIconsRegular.usersThree,
-                title: 'Family Protection',
-                subtitle: 'Secure your loved ones\' future',
-              ),
-              _BenefitTile(
-                icon: PhosphorIconsRegular.lightning,
-                title: 'Cashless Claims',
-                subtitle: 'Hassle-free & instant settlement',
-              ),
-              _BenefitTile(
-                icon: PhosphorIconsRegular.headset,
-                title: '24/7 Support',
-                subtitle: 'We\'re here for you, always',
-              ),
-            ],
-          ),
-        ).animate(delay: 300.ms).fadeIn(duration: 600.ms),
-
-        const SizedBox(height: 36),
-
-        // Phone & Healthcare Dashboard Graphic Mockup
-        const _HealthcareAppGraphicMockup()
-            .animate(delay: 400.ms)
-            .fadeIn(duration: 700.ms)
-            .scale(begin: const Offset(0.95, 0.95)),
-      ],
-    );
-  }
-}
-
-// ─── Benefit Tile ─────────────────────────────────────────────────────────────
-class _BenefitTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-
-  const _BenefitTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 240,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF0F172A).withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEFF6FF),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: const Color(0xFF2563EB), size: 20),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Color(0xFF0F172A),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    color: Color(0xFF64748B),
-                    fontSize: 11,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Healthcare Graphic Mockup (Phone + Floating Health Cards) ────────────────
-class _HealthcareAppGraphicMockup extends StatelessWidget {
-  const _HealthcareAppGraphicMockup();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 240,
-      width: 520,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          // Main Smartphone Frame
-          Positioned(
-            left: 20,
-            top: 0,
-            child: Container(
-              width: 220,
-              height: 235,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0F172A),
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF1E293B).withOpacity(0.25),
-                    blurRadius: 30,
-                    offset: const Offset(0, 15),
-                  ),
-                ],
-              ),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Phone App Header
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 22,
-                              height: 22,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF2563EB),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const Icon(PhosphorIconsRegular.pulse, size: 14, color: Colors.white),
-                            ),
-                            const SizedBox(width: 6),
-                            const Text(
-                              'PriorX App',
-                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-                            ),
-                          ],
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFDCFCE7),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Text(
-                            'Active',
-                            style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF166534)),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Policy Info
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(PhosphorIconsRegular.shieldCheck, color: Color(0xFF2563EB), size: 16),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
-                                Text('Policy #PX-98421', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                                Text('Full Coverage · \$500,000', style: TextStyle(fontSize: 9, color: Color(0xFF64748B))),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    // Claim Status Widget
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEFF6FF),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 24,
-                            height: 24,
-                            decoration: const BoxDecoration(color: Color(0xFF2563EB), shape: BoxShape.circle),
-                            child: const Icon(PhosphorIconsRegular.check, color: Colors.white, size: 14),
-                          ),
-                          const SizedBox(width: 8),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
-                              Text('Claim Approved', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF1E40AF))),
-                              Text('Sub-second auto decision', style: TextStyle(fontSize: 9, color: Color(0xFF3B82F6))),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // Floating Analytical Badge 1: Instant Approval
-          Positioned(
-            right: 40,
-            top: 20,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF0F172A).withOpacity(0.08),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFEF3C7),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(PhosphorIconsRegular.lightning, color: Color(0xFFD97706), size: 18),
-                  ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      Text('< 1.5s Speed', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
-                      Text('Instant AI Auth', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Floating Analytical Badge 2: 99.4% Settlement Rate
-          Positioned(
-            right: 15,
-            bottom: 30,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF0F172A).withOpacity(0.08),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFDCFCE7),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(PhosphorIconsRegular.shieldCheck, color: Color(0xFF16A34A), size: 18),
-                  ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      Text('99.4% Accuracy', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
-                      Text('CMS 2026 Compliant', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -779,6 +282,7 @@ class _LoginCard extends StatelessWidget {
   final VoidCallback onForgotPass;
   final VoidCallback onRegister;
   final bool isMobile;
+  final double vh;
 
   const _LoginCard({
     required this.formKey,
@@ -796,61 +300,72 @@ class _LoginCard extends StatelessWidget {
     required this.onForgotPass,
     required this.onRegister,
     required this.isMobile,
+    required this.vh,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Smooth dynamic spacing based on viewport height (NO ScrollView)
+    final tHeight = ((vh - 500) / 350).clamp(0.0, 1.0);
+    final isTall = vh >= 850;
+    final isMedium = vh >= 720 && vh < 850;
+    final vw = MediaQuery.of(context).size.width;
+    final cardWidth = isMobile ? math.min(480.0, vw - 24) : math.min(740.0, (vw - 60) * 0.48);
+
+    final cardPadding = EdgeInsets.only(
+      left: isMobile ? 20.0 : (28.0 + (6.0 * tHeight)),
+      right: isMobile ? 20.0 : (28.0 + (6.0 * tHeight)),
+      top: isMobile ? 18.0 : (32.0 + (14.0 * tHeight)),
+      bottom: isMobile ? 18.0 : (32.0 + (14.0 * tHeight)),
+    );
+
+    final illustrationHeight = isMobile ? 110.0 : (150.0 + (30.0 * tHeight));
+    final gap = isMobile ? 6.0 : (12.0 + (14.0 * tHeight));
+    final fieldGap = isMobile ? 4.0 : (8.0 + (8.0 * tHeight));
+    final inputHeight = isMobile ? 46.0 : (54.0 + (4.0 * tHeight));
+    final buttonHeight = isMobile ? 48.0 : (56.0 + (4.0 * tHeight));
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF0F172A).withOpacity(0.06),
-            blurRadius: 40,
-            offset: const Offset(0, 16),
+            blurRadius: 30,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 24 : 36,
-        vertical: isMobile ? 28 : 36,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Top Bar (Controls on desktop)
+      padding: cardPadding,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.topCenter,
+        child: UnconstrainedBox(
+          child: SizedBox(
+            width: cardWidth,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+          // Top Controls Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              if (!isMobile) const _PriorXLogoHeader() else const SizedBox.shrink(),
-              const _TopControlsHeader(),
+              if (!isMobile) PriorXLogoHeader(height: isTall ? 36 : 30) else const SizedBox.shrink(),
+              PriorXTopControlsHeader(compact: !isTall),
             ],
           ),
 
-          const SizedBox(height: 24),
+          SizedBox(height: gap),
 
-          // Healthcare Icon Badge
+          // MANDATORY Healthcare City Vector Illustration (Centered above Welcome Back)
           Center(
-            child: Container(
-              width: 54,
-              height: 54,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEEF2FF),
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFFC7D2FE), width: 1.5),
-              ),
-              child: const Icon(
-                PhosphorIconsRegular.shieldCheck,
-                color: Color(0xFF4F46E5),
-                size: 28,
-              ),
-            ),
-          ).animate().scale(duration: 400.ms, curve: Curves.easeOut),
+            child: PriorXCityIllustration(width: isTall ? 200 : (isMedium ? 170 : 130), height: illustrationHeight),
+          ),
 
-          const SizedBox(height: 16),
+          SizedBox(height: gap * 0.75),
 
           // Welcome Header
           Center(
@@ -859,11 +374,11 @@ class _LoginCard extends StatelessWidget {
                 RichText(
                   textAlign: TextAlign.center,
                   text: TextSpan(
-                    style: const TextStyle(
-                      fontSize: 26,
+                    style: TextStyle(
+                      fontSize: isTall ? 24 : (isMedium ? 20 : 17),
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F172A),
-                      letterSpacing: -0.5,
+                      color: const Color(0xFF0F172A),
+                      letterSpacing: -0.4,
                     ),
                     children: [
                       const TextSpan(text: 'Welcome '),
@@ -873,189 +388,176 @@ class _LoginCard extends StatelessWidget {
                           foreground: Paint()
                             ..shader = const LinearGradient(
                               colors: [Color(0xFF2563EB), Color(0xFF6366F1)],
-                            ).createShader(const Rect.fromLTWH(0.0, 0.0, 100.0, 40.0)),
+                            ).createShader(const Rect.fromLTWH(0.0, 0.0, 100.0, 30.0)),
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 6),
-                const Text(
+                SizedBox(height: isTall ? 4 : 2),
+                Text(
                   'Sign in to your PRIORX account',
                   style: TextStyle(
-                    color: Color(0xFF64748B),
-                    fontSize: 14,
+                    color: const Color(0xFF64748B),
+                    fontSize: isTall ? 13 : (isMedium ? 11 : 10),
                     fontWeight: FontWeight.w400,
                   ),
                 ),
               ],
             ),
-          ).animate(delay: 100.ms).fadeIn(),
+          ).animate(delay: 50.ms).fadeIn(),
 
-          const SizedBox(height: 24),
+          SizedBox(height: gap),
 
           // Quick Demo Role Pills Selector
           _QuickDemoRoleSelector(
             selectedIndex: selectedDemo,
             onSelect: onFillDemo,
+            compact: !isTall,
           ),
 
-          const SizedBox(height: 24),
+          SizedBox(height: gap),
 
           // Form
           Form(
             key: formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                // Email Field Label
-                const Text(
+                // Email Label
+                Text(
                   'Email or Mobile Number',
                   style: TextStyle(
-                    color: Color(0xFF334155),
-                    fontSize: 13,
+                    color: const Color(0xFF334155),
+                    fontSize: isTall ? 12 : 11,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: isTall ? 4 : 2),
 
-                // Email Field
-                TextFormField(
-                  controller: emailCtrl,
-                  style: const TextStyle(color: Color(0xFF0F172A), fontSize: 14),
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    hintText: 'Enter your email or mobile number',
-                    hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
-                    prefixIcon: const Icon(PhosphorIconsRegular.envelopeSimple, size: 18, color: Color(0xFF64748B)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                // Email Input
+                SizedBox(
+                  height: inputHeight,
+                  child: TextFormField(
+                    controller: emailCtrl,
+                    style: TextStyle(color: const Color(0xFF0F172A), fontSize: isTall ? 13 : 12),
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: _inputDecoration(
+                      hint: 'Enter your email or mobile number',
+                      icon: PhosphorIconsRegular.envelopeSimple,
+                      isTall: isTall,
+                      isMedium: isMedium,
                     ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5),
-                    ),
-                    errorBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: AppColors.error.withOpacity(0.6)),
-                    ),
-                    focusedErrorBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.error, width: 1.5),
-                    ),
-                    filled: true,
-                    fillColor: const Color(0xFFF8FAFC),
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) return 'Email is required';
+                      if (!v.contains('@')) return 'Enter valid email';
+                      return null;
+                    },
                   ),
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Email is required';
-                    if (!v.contains('@')) return 'Enter a valid email address';
-                    return null;
-                  },
                 ),
 
-                const SizedBox(height: 18),
+                SizedBox(height: fieldGap),
 
-                // Password Field Label
-                const Text(
+                // Password Label
+                Text(
                   'Password',
                   style: TextStyle(
-                    color: Color(0xFF334155),
-                    fontSize: 13,
+                    color: const Color(0xFF334155),
+                    fontSize: isTall ? 12 : 11,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: isTall ? 4 : 2),
 
-                // Password Field
-                TextFormField(
-                  controller: passCtrl,
-                  style: const TextStyle(color: Color(0xFF0F172A), fontSize: 14),
-                  obscureText: obscurePass,
-                  onFieldSubmitted: (_) => onSignIn(),
-                  decoration: InputDecoration(
-                    hintText: 'Enter your password',
-                    hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
-                    prefixIcon: const Icon(PhosphorIconsRegular.lockSimple, size: 18, color: Color(0xFF64748B)),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        obscurePass ? PhosphorIconsRegular.eye : PhosphorIconsRegular.eyeSlash,
-                        size: 18,
-                        color: const Color(0xFF64748B),
+                // Password Input
+                SizedBox(
+                  height: inputHeight,
+                  child: TextFormField(
+                    controller: passCtrl,
+                    style: TextStyle(color: const Color(0xFF0F172A), fontSize: isTall ? 13 : 12),
+                    obscureText: obscurePass,
+                    onFieldSubmitted: (_) => onSignIn(),
+                    decoration: _inputDecoration(
+                      hint: 'Enter your password',
+                      icon: PhosphorIconsRegular.lockSimple,
+                      isTall: isTall,
+                      isMedium: isMedium,
+                      suffix: IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        icon: Icon(
+                          obscurePass ? PhosphorIconsRegular.eye : PhosphorIconsRegular.eyeSlash,
+                          size: isTall ? 16 : 14,
+                          color: const Color(0xFF64748B),
+                        ),
+                        onPressed: onTogglePass,
                       ),
-                      onPressed: onTogglePass,
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5),
-                    ),
-                    errorBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: AppColors.error.withOpacity(0.6)),
-                    ),
-                    focusedErrorBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.error, width: 1.5),
-                    ),
-                    filled: true,
-                    fillColor: const Color(0xFFF8FAFC),
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return 'Password is required';
+                      return null;
+                    },
                   ),
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return 'Password is required';
-                    return null;
-                  },
                 ),
 
-                const SizedBox(height: 14),
+                SizedBox(height: isTall ? 8 : 4),
 
                 // Remember me & Forgot Password Row
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: Checkbox(
-                            value: rememberMe,
-                            onChanged: onToggleRemember,
-                            activeColor: const Color(0xFF2563EB),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4),
+                    Flexible(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: Checkbox(
+                              value: rememberMe,
+                              onChanged: onToggleRemember,
+                              activeColor: const Color(0xFF2563EB),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(3),
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Remember me',
-                          style: TextStyle(
-                            color: Color(0xFF475569),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              'Remember me',
+                              style: TextStyle(
+                                color: const Color(0xFF475569),
+                                fontSize: isTall ? 12 : 10,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    TextButton(
-                      onPressed: onForgotPass,
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        foregroundColor: const Color(0xFF2563EB),
+                        ],
                       ),
-                      child: const Text(
-                        'Forgot Password?',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                    ),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: onForgotPass,
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            foregroundColor: const Color(0xFF2563EB),
+                          ),
+                          child: Text(
+                            'Forgot Password?',
+                            style: TextStyle(
+                              fontSize: isTall ? 12 : 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -1064,46 +566,49 @@ class _LoginCard extends StatelessWidget {
 
                 // Error Message Banner
                 if (errorMsg != null) ...[
-                  const SizedBox(height: 14),
+                  SizedBox(height: isTall ? 8 : 4),
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFEF2F2),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: const Color(0xFFFCA5A5)),
                     ),
                     child: Row(
                       children: [
-                        const Icon(PhosphorIconsRegular.warningCircle, size: 18, color: Color(0xFFDC2626)),
-                        const SizedBox(width: 8),
+                        const Icon(PhosphorIconsRegular.warningCircle, size: 14, color: Color(0xFFDC2626)),
+                        const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             errorMsg!,
                             style: const TextStyle(
                               color: Color(0xFF991B1B),
-                              fontSize: 12,
+                              fontSize: 11,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
                       ],
                     ),
-                  ).animate().fadeIn().slideY(begin: -0.1),
+                  ),
                 ],
+              ],
+            ),
+          ),
 
-                const SizedBox(height: 24),
+                SizedBox(height: gap * 1.2),
 
                 // Primary Sign In Button
                 SizedBox(
                   width: double.infinity,
-                  height: 52,
+                  height: buttonHeight,
                   child: ElevatedButton(
                     onPressed: isLoading ? null : onSignIn,
                     style: ElevatedButton.styleFrom(
                       elevation: 0,
                       padding: EdgeInsets.zero,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                     ),
                     child: Ink(
@@ -1113,33 +618,33 @@ class _LoginCard extends StatelessWidget {
                           begin: Alignment.centerLeft,
                           end: Alignment.centerRight,
                         ),
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       child: Container(
                         alignment: Alignment.center,
                         child: isLoading
                             ? const SizedBox(
-                                width: 22,
-                                height: 22,
+                                width: 18,
+                                height: 18,
                                 child: CircularProgressIndicator(
-                                  strokeWidth: 2.5,
+                                  strokeWidth: 2,
                                   color: Colors.white,
                                 ),
                               )
                             : Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
-                                children: const [
+                                children: [
                                   Text(
                                     'Sign In',
                                     style: TextStyle(
                                       color: Colors.white,
-                                      fontSize: 15,
+                                      fontSize: isTall ? 14 : 13,
                                       fontWeight: FontWeight.bold,
-                                      letterSpacing: 0.3,
+                                      letterSpacing: 0.2,
                                     ),
                                   ),
-                                  SizedBox(width: 8),
-                                  Icon(PhosphorIconsRegular.arrowRight, color: Colors.white, size: 18),
+                                  const SizedBox(width: 6),
+                                  Icon(PhosphorIconsRegular.arrowRight, color: Colors.white, size: isTall ? 16 : 14),
                                 ],
                               ),
                       ),
@@ -1147,50 +652,83 @@ class _LoginCard extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(height: 20),
+                SizedBox(height: isTall ? 12 : 8),
 
-                // Create Account Row
+                // Create Account Link
                 Center(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        'New to PRIORX? ',
-                        style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
-                      ),
-                      GestureDetector(
-                        onTap: onRegister,
-                        child: const Text(
-                          'Create Account',
-                          style: TextStyle(
-                            color: Color(0xFF2563EB),
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'New to PRIORX? ',
+                          style: TextStyle(color: const Color(0xFF64748B), fontSize: isTall ? 12 : 11),
+                        ),
+                        GestureDetector(
+                          onTap: onRegister,
+                          child: Text(
+                            'Create Account',
+                            style: TextStyle(
+                              color: const Color(0xFF2563EB),
+                              fontSize: isTall ? 12 : 11,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                SizedBox(height: isTall ? 14 : 8),
                 const Divider(color: Color(0xFFF1F5F9), height: 1),
-                const SizedBox(height: 18),
+                SizedBox(height: isTall ? 12 : 6),
 
                 // Bottom Trust Indicators
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: const [
-                    _TrustBadge(icon: PhosphorIconsRegular.shieldCheck, label: 'Trusted & Secure'),
-                    _TrustBadge(icon: PhosphorIconsRegular.lightning, label: 'Quick Claim'),
-                    _TrustBadge(icon: PhosphorIconsRegular.fileText, label: '100% Paperless'),
-                  ],
-                ),
+                PriorXTrustIndicators(compact: !isTall),
               ],
             ),
           ),
-        ],
+        ),
       ),
+    );
+  }
+
+  InputDecoration _inputDecoration({
+    required String hint,
+    required IconData icon,
+    required bool isTall,
+    required bool isMedium,
+    Widget? suffix,
+  }) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(color: const Color(0xFF94A3B8), fontSize: isTall ? 12 : 11),
+      prefixIcon: Icon(icon, size: isTall ? 16 : 14, color: const Color(0xFF64748B)),
+      suffixIcon: suffix,
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: isTall ? 12 : 10,
+        vertical: isTall ? 10 : 6,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: AppColors.error.withOpacity(0.6)),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+      ),
+      filled: true,
+      fillColor: const Color(0xFFF8FAFC),
     );
   }
 }
@@ -1199,10 +737,12 @@ class _LoginCard extends StatelessWidget {
 class _QuickDemoRoleSelector extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onSelect;
+  final bool compact;
 
   const _QuickDemoRoleSelector({
     required this.selectedIndex,
     required this.onSelect,
+    this.compact = false,
   });
 
   static const _roles = [
@@ -1217,46 +757,54 @@ class _QuickDemoRoleSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(compact ? 6 : 8),
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: const [
-              Icon(PhosphorIconsRegular.lightning, size: 14, color: Color(0xFFD97706)),
-              SizedBox(width: 6),
-              Text(
-                'Quick Demo — Select a role to auto-fill',
-                style: TextStyle(
-                  color: Color(0xFF475569),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Row(
+              children: [
+                Icon(PhosphorIconsRegular.lightning, size: compact ? 11 : 12, color: const Color(0xFFD97706)),
+                const SizedBox(width: 4),
+                Text(
+                  'Quick Demo — Select role to auto-fill',
+                  style: TextStyle(
+                    color: const Color(0xFF475569),
+                    fontSize: compact ? 9.5 : 10.5,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: compact ? 4 : 6),
           Wrap(
-            spacing: 6,
-            runSpacing: 6,
+            spacing: compact ? 4 : 5,
+            runSpacing: compact ? 4 : 5,
             children: _roles.asMap().entries.map((e) {
               final i = e.key;
               final (label, role, icon) = e.value;
               final isSelected = i == selectedIndex;
               return InkWell(
                 onTap: () => onSelect(i),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(16),
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  duration: const Duration(milliseconds: 150),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: compact ? 6 : 8,
+                    vertical: compact ? 3 : 4,
+                  ),
                   decoration: BoxDecoration(
                     color: isSelected ? const Color(0xFFEFF6FF) : Colors.white,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: isSelected ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0),
                       width: isSelected ? 1.5 : 1,
@@ -1267,15 +815,15 @@ class _QuickDemoRoleSelector extends StatelessWidget {
                     children: [
                       Icon(
                         icon,
-                        size: 13,
+                        size: compact ? 10 : 11,
                         color: isSelected ? const Color(0xFF2563EB) : const Color(0xFF64748B),
                       ),
-                      const SizedBox(width: 5),
+                      const SizedBox(width: 3),
                       Text(
                         label,
                         style: TextStyle(
                           color: isSelected ? const Color(0xFF1E40AF) : const Color(0xFF334155),
-                          fontSize: 11,
+                          fontSize: compact ? 9.5 : 10,
                           fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                         ),
                       ),
@@ -1287,33 +835,6 @@ class _QuickDemoRoleSelector extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-// ─── Trust Badge Widget ───────────────────────────────────────────────────────
-class _TrustBadge extends StatelessWidget {
-  final IconData icon;
-  final String label;
-
-  const _TrustBadge({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 14, color: const Color(0xFF10B981)),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            color: Color(0xFF64748B),
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
     );
   }
 }

@@ -260,6 +260,50 @@ class DataRepository {
   Future<void> syncAppointments() => saveToSupabase('appointments', appointments.map(_appointmentToJson).toList());
   Future<void> syncSurgeries() => saveToSupabase('surgeries', surgeries.map(_surgeryToJson).toList());
 
+  /// Wipes all data records across all Supabase tables while keeping table schemas intact.
+  Future<void> purgeAllSupabaseData() async {
+    final tables = [
+      'ai_decisions',
+      'appeals',
+      'authorizations',
+      'surgeries',
+      'appointments',
+      'notifications',
+      'audit_logs',
+      'patients',
+      'doctors',
+      'insurance_reviewers',
+      'hospital_staff',
+      'hospital_admins',
+      'administrators',
+      'priorx_store',
+    ];
+
+    for (final table in tables) {
+      try {
+        if (table == 'priorx_store') {
+          await _supabase.from(table).delete().neq('key', '__none__');
+        } else {
+          await _supabase.from(table).delete().neq('id', '__none__');
+        }
+      } catch (e) {
+        debugPrint('Error purging Supabase table $table: $e');
+      }
+    }
+
+    // Clear local in-memory lists
+    patients.clear();
+    doctors.clear();
+    authorizations.clear();
+    aiDecisions.clear();
+    appeals.clear();
+    auditLogs.clear();
+    notifications.clear();
+    fhirSyncs.clear();
+    appointments.clear();
+    surgeries.clear();
+  }
+
   // --- Json Mapper Helpers ---
 
   static Map<String, dynamic> _patientToJson(Patient p) => {

@@ -10,6 +10,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../models/user_role.dart';
 import '../../core/utils/platform_helper.dart';
+import '../../features/settings/presentation/settings_screen.dart';
 import 'command_palette.dart';
 
 // ─── Navigation Item Definition ───────────────────────────────────────────────
@@ -459,14 +460,20 @@ class _SidebarLogo extends StatelessWidget {
       child: Row(
         mainAxisAlignment: isExpanded ? MainAxisAlignment.start : MainAxisAlignment.center,
         children: [
-          Container(
+          Image.asset(
+            'assets/images/priorx_logo.png',
             width: 36,
             height: 36,
-            decoration: BoxDecoration(
-              color: AppColors.mockupTealLight,
-              borderRadius: BorderRadius.circular(10),
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) => Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.mockupTealLight,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.add_rounded, color: AppColors.mockupTeal, size: 22),
             ),
-            child: const Icon(Icons.add_rounded, color: AppColors.mockupTeal, size: 22),
           ),
           if (isExpanded) ...[
             const SizedBox(width: 12),
@@ -840,6 +847,18 @@ class _TopBar extends ConsumerWidget {
                 ),
             ],
           ),
+
+          // Admin Purge Supabase Data Button (Administrator only)
+          if (user?.role == UserRole.administrator) ...[
+            Tooltip(
+              message: 'Purge All Supabase Data',
+              child: IconButton(
+                icon: const Icon(PhosphorIconsRegular.trash, size: 20, color: AppColors.error),
+                onPressed: () => showAdminPurgeDialog(context),
+              ),
+            ),
+            const SizedBox(width: 4),
+          ],
 
           const SizedBox(width: 4),
 

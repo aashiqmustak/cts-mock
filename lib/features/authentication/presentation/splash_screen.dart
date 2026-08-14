@@ -33,19 +33,11 @@ class _SplashScreenState extends State<SplashScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // Logo
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
-                ),
-                child: const Icon(
-                  Icons.medical_services_rounded,
-                  size: 52,
-                  color: Colors.white,
-                ),
+              Image.asset(
+                'assets/images/priorx_logo.png',
+                width: 140,
+                height: 140,
+                fit: BoxFit.contain,
               )
                   .animate()
                   .scale(begin: const Offset(0.5, 0.5), duration: 600.ms, curve: Curves.elasticOut)

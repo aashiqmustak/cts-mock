@@ -214,10 +214,103 @@ class AuthNotifier extends StateNotifier<AuthState> {
           if (licenseNumber != null) 'licenseNumber': licenseNumber,
         },
       );
-      if (response.user != null) {
+
+      final user = response.user;
+      if (user != null) {
+        final userId = user.id;
+
+        // 1. Create / Update Profiles row
+        try {
+          await _supabase.from('profiles').upsert({
+            'id': userId,
+            'name': name,
+            'email': email.trim(),
+            'role': role.name,
+            if (facility != null) 'facility': facility,
+            if (specialization != null) 'specialization': specialization,
+            if (licenseNumber != null) 'license_number': licenseNumber,
+            'created_at': DateTime.now().toIso8601String(),
+          });
+        } catch (_) {}
+
+        // 2. Create / Update Role-Specific Table Record
+        try {
+          switch (role) {
+            case UserRole.patient:
+              await _supabase.from('patients').upsert({
+                'id': userId,
+                'name': name,
+                'contact_email': email.trim(),
+                'facility_id': facility ?? 'FAC-001',
+                'date_of_birth': '1990-01-01',
+                'gender': 'Unspecified',
+                'insurance_id': 'INS-PENDING',
+                'insurance_plan': 'Standard Health Plan',
+                'payer': 'PriorX Health',
+                'contact_phone': 'N/A',
+              });
+              break;
+
+            case UserRole.doctor:
+              await _supabase.from('doctors').upsert({
+                'id': userId,
+                'name': name,
+                'email': email.trim(),
+                'npi': licenseNumber ?? 'NPI-PENDING',
+                'specialization': specialization ?? 'General Medicine',
+                'facility': facility ?? 'Metropolitan General Hospital',
+                'phone': 'N/A',
+                'is_active': true,
+              });
+              break;
+
+            case UserRole.insuranceReviewer:
+              await _supabase.from('insurance_reviewers').upsert({
+                'id': userId,
+                'name': name,
+                'email': email.trim(),
+                'facility': facility ?? 'PriorX Insurance',
+              });
+              break;
+
+            case UserRole.hospitalStaff:
+              await _supabase.from('hospital_staff').upsert({
+                'id': userId,
+                'name': name,
+                'email': email.trim(),
+                'facility': facility ?? 'Metropolitan General Hospital',
+              });
+              break;
+
+            case UserRole.adminHospital:
+              await _supabase.from('hospital_admins').upsert({
+                'id': userId,
+                'name': name,
+                'email': email.trim(),
+                'facility': facility ?? 'Metropolitan General Hospital',
+              });
+              break;
+
+            case UserRole.administrator:
+              await _supabase.from('administrators').upsert({
+                'id': userId,
+                'name': name,
+                'email': email.trim(),
+                'facility': facility ?? 'MediAuth Systems HQ',
+              });
+              break;
+          }
+        } catch (e) {
+          state = AuthState(
+            status: AuthStatus.error,
+            errorMessage: 'Failed to create ${role.displayName} record: $e',
+          );
+          return false;
+        }
+
         state = AuthState(
           status: AuthStatus.authenticated,
-          user: _mapSupabaseUserToAppUser(response.user!),
+          user: _mapSupabaseUserToAppUser(user),
         );
         return true;
       }
