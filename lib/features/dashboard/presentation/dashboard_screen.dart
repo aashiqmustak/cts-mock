@@ -25,6 +25,8 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  DateTime _selectedDate = DateTime.now();
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
@@ -45,6 +47,48 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   // ─── Desktop Dashboard (Mockup Left/Right Panels) ───────────────────────────
   Widget _buildDesktopDashboard(BuildContext context) {
     final user = ref.watch(currentUserProvider);
+    final now = DateTime.now();
+    final patients = MockDataRepository.instance.patients;
+    final appointments = MockDataRepository.instance.appointments;
+
+    // Trend calculations for Patients (based on lastVisit)
+    final last7DaysPatients = patients.where((p) => p.lastVisit != null && p.lastVisit!.isAfter(now.subtract(const Duration(days: 7)))).length;
+    final prev7DaysPatients = patients.where((p) => p.lastVisit != null && p.lastVisit!.isAfter(now.subtract(const Duration(days: 14))) && p.lastVisit!.isBefore(now.subtract(const Duration(days: 7)))).length;
+    final patientTrendPercent = prev7DaysPatients == 0 ? 10 : (((last7DaysPatients - prev7DaysPatients) / prev7DaysPatients) * 100).round();
+    final patientTrendSign = patientTrendPercent >= 0 ? "+" : "";
+
+    final List<double> patientSparkHeights = List.generate(7, (i) {
+      final day = now.subtract(Duration(days: 6 - i));
+      final count = patients.where((p) =>
+          p.lastVisit != null &&
+          p.lastVisit!.year == day.year &&
+          p.lastVisit!.month == day.month &&
+          p.lastVisit!.day == day.day).length;
+      return (count * 5.0) + 4.0;
+    });
+
+    // Trend calculations for Appointments
+    final last7DaysAppts = appointments.where((a) => a.dateTime.isAfter(now.subtract(const Duration(days: 7)))).length;
+    final prev7DaysAppts = appointments.where((a) => a.dateTime.isAfter(now.subtract(const Duration(days: 14))) && a.dateTime.isBefore(now.subtract(const Duration(days: 7)))).length;
+    final apptTrendPercent = prev7DaysAppts == 0 ? 5 : (((last7DaysAppts - prev7DaysAppts) / prev7DaysAppts) * 100).round();
+    final apptTrendSign = apptTrendPercent >= 0 ? "+" : "";
+
+    final List<double> appointmentSparkHeights = List.generate(7, (i) {
+      final day = now.subtract(Duration(days: 6 - i));
+      final count = appointments.where((a) =>
+          a.dateTime.year == day.year &&
+          a.dateTime.month == day.month &&
+          a.dateTime.day == day.day).length;
+      return (count * 5.0) + 4.0;
+    });
+
+    final userInitials = user != null && user.name.isNotEmpty 
+        ? user.name.split(' ').map((e) => e[0]).take(2).join().toUpperCase() 
+        : "RF";
+
+    final userLastName = user != null && user.name.isNotEmpty 
+        ? user.name.split(' ').last 
+        : "Robert";
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -117,9 +161,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         CircleAvatar(
                           radius: 18,
                           backgroundColor: AppColors.mockupPurpleLight,
-                          child: const Text(
-                            "RF",
-                            style: TextStyle(
+                          child: Text(
+                            userInitials,
+                            style: const TextStyle(
                               color: AppColors.mockupPurple,
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
@@ -157,7 +201,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         Row(
                           children: [
                             Text(
-                              "Good morning, Dr.Robert!",
+                              "Good morning, ${user?.role == UserRole.doctor ? 'Dr. $userLastName' : user?.name ?? 'Dr. Robert'}!",
                               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                                 fontWeight: FontWeight.w800,
                                 color: AppColors.mockupDark,
@@ -214,24 +258,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     Expanded(
                       child: _buildDesktopStatCard(
                         title: "Total patients",
-                        value: "58",
-                        trend: "+13%",
-                        trendColor: AppColors.mockupTeal,
-                        isUp: true,
-                        sparkHeights: [8, 12, 6, 18, 22, 10, 15, 28, 20, 25, 14],
-                        trendMessage: "Patients coming increased by 13%\nin last 7 days",
+                        value: patients.length.toString(),
+                        trend: "$patientTrendSign$patientTrendPercent%",
+                        trendColor: patientTrendPercent >= 0 ? AppColors.mockupTeal : Colors.red.shade400,
+                        isUp: patientTrendPercent >= 0,
+                        sparkHeights: patientSparkHeights,
+                        trendMessage: "${patients.length} patients registered in the system",
                       ),
                     ),
                     const SizedBox(width: 20),
                     Expanded(
                       child: _buildDesktopStatCard(
                         title: "Total appointments",
-                        value: "340",
-                        trend: "-5%",
-                        trendColor: Colors.red.shade400,
-                        isUp: false,
-                        sparkHeights: [25, 20, 18, 22, 14, 12, 10, 8, 6, 8, 4],
-                        trendMessage: "Decrease in appointments by 5%\nin the last 7 days",
+                        value: appointments.length.toString(),
+                        trend: "$apptTrendSign$apptTrendPercent%",
+                        trendColor: apptTrendPercent >= 0 ? AppColors.mockupTeal : Colors.red.shade400,
+                        isUp: apptTrendPercent >= 0,
+                        sparkHeights: appointmentSparkHeights,
+                        trendMessage: "${appointments.length} total appointments scheduled",
                       ),
                     ),
                   ],
@@ -301,7 +345,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _DesktopCalendar(),
+                _DesktopCalendar(
+                  selectedDate: _selectedDate,
+                  onDateSelected: (date) {
+                    setState(() {
+                      _selectedDate = date;
+                    });
+                  },
+                ),
                 const SizedBox(height: 20),
                 const Divider(),
                 const SizedBox(height: 20),
@@ -413,6 +464,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   // ─── Surgeries Performed widget ──────────────────────────────────────────────
   Widget _buildSurgeriesPerformed() {
+    final surgeries = MockDataRepository.instance.surgeries;
+    final totalCount = surgeries.length;
+    final emergencyCount = surgeries.where((s) => s.procedure.toLowerCase().contains('emergency')).length;
+    final electiveCount = totalCount - emergencyCount;
+
+    // Generate heights based on surgery date days
+    final heights = List<double>.filled(24, 4.0);
+    for (final s in surgeries) {
+      final index = s.dateTime.day % 24;
+      heights[index] = heights[index] + 6.0;
+      if (heights[index] > 26.0) heights[index] = 26.0;
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -444,16 +508,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.baseline,
           textBaseline: TextBaseline.alphabetic,
           children: [
-            const Text(
-              "24",
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.mockupDark),
+            Text(
+              "$totalCount",
+              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.mockupDark),
             ),
             const SizedBox(width: 6),
-            Text(
-              "-5%",
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red.shade400),
+            const Text(
+              "+2%",
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.mockupTeal),
             ),
-            Icon(Icons.arrow_drop_down_rounded, color: Colors.red.shade400, size: 16),
+            const Icon(Icons.arrow_drop_up_rounded, color: AppColors.mockupTeal, size: 16),
           ],
         ),
         const Spacer(),
@@ -462,7 +526,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: List.generate(24, (index) {
-            final h = (index % 3 == 0) ? 22.0 : ((index % 2 == 0) ? 14.0 : 8.0);
+            final h = heights[index];
             return Container(
               width: 4,
               height: h,
@@ -481,13 +545,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             const SizedBox(width: 6),
             const Text("Elective", style: TextStyle(fontSize: 11, color: Colors.grey)),
             const SizedBox(width: 8),
-            const Text("16", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.mockupDark)),
+            Text("$electiveCount", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.mockupDark)),
             const SizedBox(width: 24),
             Container(width: 8, height: 8, decoration: BoxDecoration(color: AppColors.mockupPurple.withOpacity(0.3), shape: BoxShape.circle)),
             const SizedBox(width: 6),
             const Text("Emergency", style: TextStyle(fontSize: 11, color: Colors.grey)),
             const SizedBox(width: 8),
-            const Text("8", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.mockupDark)),
+            Text("$emergencyCount", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.mockupDark)),
           ],
         ),
       ],
@@ -496,6 +560,40 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   // ─── Satisfaction Rate widget ───────────────────────────────────────────────
   Widget _buildSatisfactionRate() {
+    final auths = ref.watch(authorizationsProvider);
+    final approved = auths.where((a) => a.status == AuthorizationStatus.approved).length;
+    final totalDecided = auths.where((a) => a.status == AuthorizationStatus.approved || a.status == AuthorizationStatus.rejected).length;
+    final rate = totalDecided == 0 ? 0.92 : (approved / totalDecided);
+    final rateString = "${(rate * 100).round()}%";
+
+    // Build historical points dynamically
+    final sortedAuths = List<AuthorizationRequest>.from(auths)
+      ..sort((a, b) => a.requestedAt.compareTo(b.requestedAt));
+
+    final List<double> points = [];
+    int approvedCount = 0;
+    int decidedCount = 0;
+    for (final auth in sortedAuths) {
+      if (auth.status == AuthorizationStatus.approved || auth.status == AuthorizationStatus.rejected) {
+        decidedCount++;
+        if (auth.status == AuthorizationStatus.approved) {
+          approvedCount++;
+        }
+        points.add((approvedCount / decidedCount) * 100);
+      }
+    }
+    
+    while (points.length < 9) {
+      if (points.isNotEmpty) {
+        points.insert(0, points.first);
+      } else {
+        points.addAll([80, 85, 82, 88, 90, 89, 91, 93, 92]);
+      }
+    }
+    if (points.length > 9) {
+      points.removeRange(0, points.length - 9);
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -526,17 +624,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.baseline,
           textBaseline: TextBaseline.alphabetic,
-          children: const [
+          children: [
             Text(
-              "92%",
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.mockupDark),
+              rateString,
+              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.mockupDark),
             ),
-            SizedBox(width: 6),
-            Text(
+            const SizedBox(width: 6),
+            const Text(
               "+1%",
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.mockupTeal),
             ),
-            Icon(Icons.arrow_drop_up_rounded, color: AppColors.mockupTeal, size: 16),
+            const Icon(Icons.arrow_drop_up_rounded, color: AppColors.mockupTeal, size: 16),
           ],
         ),
         const Spacer(),
@@ -545,7 +643,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           height: 60,
           width: double.infinity,
           child: CustomPaint(
-            painter: _SatisfactionPainter(),
+            painter: _SatisfactionPainter(points: points),
           ),
         ),
       ],
@@ -554,94 +652,110 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   // ─── Desktop Appointments List ──────────────────────────────────────────────
   Widget _buildAppointmentsList() {
-    final list = [
-      {
-        'name': 'Dr. Leslie Alexander',
-        'specialty': 'Orthopedic surgeon',
-        'date': 'Mar 24',
-        'initials': 'LA',
-      },
-      {
-        'name': 'Dr. Jane Cooper',
-        'specialty': 'Anesthesiologist',
-        'date': 'Mar 24',
-        'initials': 'JC',
-      },
-      {
-        'name': 'Dr. Wade Warren',
-        'specialty': 'Physiotherapist',
-        'date': 'Mar 24',
-        'initials': 'WW',
-      },
-    ];
+    final appts = MockDataRepository.instance.appointments.where((a) =>
+        a.dateTime.year == _selectedDate.year &&
+        a.dateTime.month == _selectedDate.month &&
+        a.dateTime.day == _selectedDate.day).toList();
+
+    if (appts.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: Center(
+          child: Text(
+            "No appointments scheduled",
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade400, fontStyle: FontStyle.italic),
+          ),
+        ),
+      );
+    }
 
     return Column(
-      children: list.map((item) => Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade100),
-        ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: AppColors.mockupPurpleLight,
-              child: Text(
-                item['initials']!,
-                style: const TextStyle(
-                  color: AppColors.mockupPurple,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 11,
+      children: appts.map((appt) {
+        // Look up the patient
+        Patient? patient;
+        for (final p in MockDataRepository.instance.patients) {
+          if (p.id == appt.patientId) {
+            patient = p;
+            break;
+          }
+        }
+        final patientName = patient?.name ?? 'Patient (${appt.patientId})';
+        final initials = patientName.isNotEmpty
+            ? patientName.split(' ').map((e) => e[0]).take(2).join().toUpperCase()
+            : 'PT';
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade100),
+          ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 16,
+                backgroundColor: AppColors.mockupPurpleLight,
+                child: Text(
+                  initials,
+                  style: const TextStyle(
+                    color: AppColors.mockupPurple,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item['name']!,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.mockupDark),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    item['specialty']!,
-                    style: const TextStyle(fontSize: 10, color: Colors.grey),
-                  ),
-                ],
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      patientName,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.mockupDark),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      appt.reason,
+                      style: const TextStyle(fontSize: 10, color: Colors.grey),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.neutral50,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.grey.shade100),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.neutral50,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.grey.shade100),
+                ),
+                child: Row(
+                  children: [
+                    Icon(PhosphorIconsRegular.clock, size: 10, color: Colors.grey.shade600),
+                    const SizedBox(width: 4),
+                    Text(
+                      DateFormat('hh:mm a').format(appt.dateTime),
+                      style: const TextStyle(fontSize: 9, color: AppColors.mockupDark, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
               ),
-              child: Row(
-                children: [
-                  Icon(PhosphorIconsRegular.calendar, size: 10, color: Colors.grey.shade600),
-                  const SizedBox(width: 4),
-                  Text(
-                    item['date']!,
-                    style: const TextStyle(fontSize: 9, color: AppColors.mockupDark, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      )).toList(),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 
   // ─── Mobile Dashboard (Patient App style mockup) ───────────────────────────
   Widget _buildMobileDashboard(BuildContext context) {
+    final user = ref.watch(currentUserProvider);
+    final userInitials = user != null && user.name.isNotEmpty 
+        ? user.name.split(' ').map((e) => e[0]).take(2).join().toUpperCase() 
+        : 'GS';
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -656,9 +770,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   CircleAvatar(
                     radius: 20,
                     backgroundColor: AppColors.mockupPurpleLight,
-                    child: const Text(
-                      "GS",
-                      style: TextStyle(
+                    child: Text(
+                      userInitials,
+                      style: const TextStyle(
                         color: AppColors.mockupPurple,
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
@@ -674,7 +788,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         style: TextStyle(color: Colors.grey, fontSize: 11),
                       ),
                       Text(
-                        "Gwen Stacy",
+                        user?.name ?? 'Gwen Stacy',
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w800,
                           color: AppColors.mockupDark,
@@ -755,20 +869,27 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           const SizedBox(height: 8),
 
           // Horizontal scrollable date picker
-          _HorizontalDatePicker(),
+          _HorizontalDatePicker(
+            selectedDate: _selectedDate,
+            onDateSelected: (date) {
+              setState(() {
+                _selectedDate = date;
+              });
+            },
+          ),
 
           const SizedBox(height: 24),
 
           // Date Text Header
-          const Text(
-            "Wednesday, 24 March",
-            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.mockupDark),
+          Text(
+            DateFormat('EEEE, d MMMM').format(_selectedDate),
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.mockupDark),
           ),
 
           const SizedBox(height: 16),
 
           // Timed Appointments Timeline list
-          _TimelineAppointments(),
+          _TimelineAppointments(selectedDate: _selectedDate),
         ],
       ),
     ).animate().fadeIn(duration: 400.ms);
@@ -776,12 +897,29 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   // ─── Patient Portal Dashboard ──────────────────────────────────────────────
   Widget _buildPatientPortalDashboard(BuildContext context) {
-    final patientName = 'Emily Thompson';
+    final user = ref.watch(currentUserProvider);
+    final patientName = user?.name ?? 'Emily Thompson';
     final allAuths = ref.watch(authorizationsProvider);
     final allAppeals = MockDataRepository.instance.appeals
         .where((a) => a.patientName.toLowerCase() == patientName.toLowerCase())
         .toList();
     final patientNotifs = MockDataRepository.instance.notifications;
+
+    // Look up the patient record in DB for insurance details
+    Patient? dbPatient;
+    for (final p in MockDataRepository.instance.patients) {
+      if (p.name.toLowerCase() == patientName.toLowerCase()) {
+        dbPatient = p;
+        break;
+      }
+    }
+    final insurancePlanLabel = dbPatient != null 
+        ? '${dbPatient.payer} ${dbPatient.insurancePlan} · Member ID: ${dbPatient.insuranceId}'
+        : 'UnitedHealthcare PPO Plus · Member ID: UHC-998877';
+
+    final patientInitials = patientName.isNotEmpty
+        ? patientName.split(' ').map((e) => e[0]).take(2).join().toUpperCase()
+        : 'ET';
 
     return Scaffold(
       backgroundColor: AppColors.neutral50,
@@ -800,7 +938,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           CircleAvatar(
             radius: 16,
             backgroundColor: AppColors.primary.withOpacity(0.1),
-            child: const Text('ET', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12)),
+            child: Text(patientInitials, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12)),
           ),
           const SizedBox(width: 16),
         ],
@@ -835,13 +973,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Welcome back, Emily!',
+                          'Welcome back, ${patientName.split(' ')[0]}!',
                           style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w800),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'UnitedHealthcare PPO Plus · Member ID: UHC-998877',
-                          style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
+                        Text(
+                          insurancePlanLabel,
+                          style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 16),
                         const Text(
@@ -1504,6 +1642,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   // ─── Patient: Care Team Panel ───
   Widget _buildCareTeamPanel() {
+    final user = ref.read(currentUserProvider);
+    final patientName = user?.name ?? 'Emily Thompson';
+    Patient? dbPatient;
+    for (final p in MockDataRepository.instance.patients) {
+      if (p.name.toLowerCase() == patientName.toLowerCase()) {
+        dbPatient = p;
+        break;
+      }
+    }
+    final primaryDocName = dbPatient?.primaryPhysicianName ?? 'Dr. Michael Johnson';
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -1517,11 +1666,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         children: [
           const Text('Your Medical Care Team', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
           const SizedBox(height: 12),
-          _careTeamMember('Dr. Michael Johnson', 'Primary Treating Neurologist', PhosphorIconsRegular.userCircle),
+          _careTeamMember(primaryDocName, 'Primary Treating Physician', PhosphorIconsRegular.userCircle),
           const SizedBox(height: 10),
           _careTeamMember('Sarah Jenkins', 'Clinical Review Coordinator', PhosphorIconsRegular.userCircleGear),
           const SizedBox(height: 10),
-          _careTeamMember('UnitedHealthcare Support', 'Insurance Payer Representative', PhosphorIconsRegular.shieldCheck),
+          _careTeamMember('${dbPatient?.payer ?? "UnitedHealthcare"} Support', 'Insurance Payer Representative', PhosphorIconsRegular.shieldCheck),
         ],
       ),
     );
@@ -1724,7 +1873,9 @@ class _MiniBarChart extends StatelessWidget {
 
 // ─── Satisfaction Rate Bezier Custom Painter ─────────────────────────────────
 class _SatisfactionPainter extends CustomPainter {
-  final List<double> points = [20, 35, 25, 45, 40, 55, 48, 60, 52];
+  final List<double> points;
+  _SatisfactionPainter({required this.points});
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
@@ -1789,23 +1940,31 @@ class _SatisfactionPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _SatisfactionPainter oldDelegate) => oldDelegate.points != points;
 }
 
 // ─── Desktop Calendar Grid ───────────────────────────────────────────────────
-class _DesktopCalendar extends StatefulWidget {
-  @override
-  State<_DesktopCalendar> createState() => _DesktopCalendarState();
-}
+class _DesktopCalendar extends StatelessWidget {
+  final DateTime selectedDate;
+  final ValueChanged<DateTime> onDateSelected;
 
-class _DesktopCalendarState extends State<_DesktopCalendar> {
-  int _selectedDay = 14;
+  const _DesktopCalendar({
+    required this.selectedDate,
+    required this.onDateSelected,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final daysInMonth = 31;
-    final firstDayOffset = 5; // Saturday start March 2025
-    final weekdayLabels = ['Moe', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final now = DateTime.now();
+    final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+    final firstDayOfMonth = DateTime(now.year, now.month, 1);
+    final firstDayOffset = firstDayOfMonth.weekday - 1; // 0 = Monday, 6 = Sunday
+    final weekdayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    final highlightDays = MockDataRepository.instance.appointments
+        .where((a) => a.dateTime.year == now.year && a.dateTime.month == now.month)
+        .map((a) => a.dateTime.day)
+        .toSet();
 
     return Column(
       children: [
@@ -1818,9 +1977,9 @@ class _DesktopCalendarState extends State<_DesktopCalendar> {
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
             ),
-            const Text(
-              "March, 2025",
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.mockupDark),
+            Text(
+              DateFormat('MMMM, yyyy').format(now),
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.mockupDark),
             ),
             IconButton(
               icon: const Icon(Icons.chevron_right_rounded, size: 16),
@@ -1858,11 +2017,15 @@ class _DesktopCalendarState extends State<_DesktopCalendar> {
               return const SizedBox.shrink();
             }
             final day = index - firstDayOffset + 1;
-            final isSelected = day == _selectedDay;
-            final isHighlight = [1, 9, 14, 22, 23, 29, 30].contains(day);
+            final isSelected = day == selectedDate.day &&
+                selectedDate.month == now.month &&
+                selectedDate.year == now.year;
+            final isHighlight = highlightDays.contains(day);
 
             return InkWell(
-              onTap: () => setState(() => _selectedDay = day),
+              onTap: () {
+                onDateSelected(DateTime(now.year, now.month, day));
+              },
               borderRadius: BorderRadius.circular(100),
               child: Container(
                 decoration: BoxDecoration(
@@ -1901,18 +2064,46 @@ class _ConsultationsChart extends StatefulWidget {
 class _ConsultationsChartState extends State<_ConsultationsChart> {
   int _hoveredIndex = 2;
 
-  final List<Map<String, dynamic>> _chartData = [
-    {'day': 'Mon', 'male': 4, 'female': 3},
-    {'day': 'Tue', 'male': 5, 'female': 4},
-    {'day': 'Wed', 'male': 5, 'female': 5},
-    {'day': 'Thu', 'male': 3, 'female': 2},
-    {'day': 'Fri', 'male': 6, 'female': 4},
-    {'day': 'Sat', 'male': 2, 'female': 1},
-    {'day': 'Sun', 'male': 1, 'female': 1},
-  ];
+  List<Map<String, dynamic>> get _chartData {
+    final appointments = MockDataRepository.instance.appointments;
+    final patients = MockDataRepository.instance.patients;
+
+    final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final counts = List.generate(7, (i) => {'male': 0, 'female': 0});
+
+    for (final appt in appointments) {
+      final weekday = appt.dateTime.weekday; // 1 = Monday, 7 = Sunday
+      if (weekday >= 1 && weekday <= 7) {
+        Patient? patient;
+        for (final p in patients) {
+          if (p.id == appt.patientId) {
+            patient = p;
+            break;
+          }
+        }
+        final gender = patient?.gender.toLowerCase() ?? '';
+        if (gender == 'male') {
+          counts[weekday - 1]['male'] = (counts[weekday - 1]['male'] as int) + 1;
+        } else if (gender == 'female') {
+          counts[weekday - 1]['female'] = (counts[weekday - 1]['female'] as int) + 1;
+        } else {
+          counts[weekday - 1]['male'] = (counts[weekday - 1]['male'] as int) + 1;
+        }
+      }
+    }
+
+    return List.generate(7, (i) {
+      return {
+        'day': days[i],
+        'male': counts[i]['male'],
+        'female': counts[i]['female'],
+      };
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final dataList = _chartData;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1971,7 +2162,7 @@ class _ConsultationsChartState extends State<_ConsultationsChart> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.end,
-                  children: _chartData.asMap().entries.map((entry) {
+                  children: dataList.asMap().entries.map((entry) {
                     final idx = entry.key;
                     final data = entry.value;
                     final maleVal = data['male'] as int;
@@ -2038,7 +2229,7 @@ class _ConsultationsChartState extends State<_ConsultationsChart> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        "$day, 26",
+                                        "$day, ${maleVal + femaleVal}",
                                         style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                                       ),
                                       const SizedBox(height: 4),
@@ -2151,36 +2342,33 @@ class _MoodSliderState extends State<_MoodSlider> {
 }
 
 // ─── Mobile Horizontal Date Picker ───────────────────────────────────────────
-class _HorizontalDatePicker extends StatefulWidget {
-  @override
-  State<_HorizontalDatePicker> createState() => _HorizontalDatePickerState();
-}
+class _HorizontalDatePicker extends StatelessWidget {
+  final DateTime selectedDate;
+  final ValueChanged<DateTime> onDateSelected;
 
-class _HorizontalDatePickerState extends State<_HorizontalDatePicker> {
-  int _selectedDayIndex = 2; // Wednesday (24) default
-
-  final List<Map<String, String>> _days = [
-    {'day': 'Mon', 'date': '22'},
-    {'day': 'Tue', 'date': '23'},
-    {'day': 'Wed', 'date': '24'},
-    {'day': 'Thu', 'date': '25'},
-    {'day': 'Fri', 'date': '26'},
-    {'day': 'Sat', 'date': '27'},
-    {'day': 'Sun', 'date': '28'},
-  ];
+  const _HorizontalDatePicker({
+    required this.selectedDate,
+    required this.onDateSelected,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final today = DateTime.now();
+    final firstDayOfWeek = today.subtract(Duration(days: today.weekday - 1));
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
-        children: _days.asMap().entries.map((entry) {
-          final idx = entry.key;
-          final d = entry.value;
-          final isSelected = idx == _selectedDayIndex;
+        children: List.generate(7, (idx) {
+          final dayDate = firstDayOfWeek.add(Duration(days: idx));
+          final isSelected = dayDate.day == selectedDate.day &&
+              dayDate.month == selectedDate.month &&
+              dayDate.year == selectedDate.year;
+
+          final dayName = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][idx];
 
           return GestureDetector(
-            onTap: () => setState(() => _selectedDayIndex = idx),
+            onTap: () => onDateSelected(dayDate),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
               margin: const EdgeInsets.only(right: 12),
@@ -2195,7 +2383,7 @@ class _HorizontalDatePickerState extends State<_HorizontalDatePicker> {
               child: Column(
                 children: [
                   Text(
-                    d['day']!,
+                    dayName,
                     style: TextStyle(
                       fontSize: 11,
                       color: isSelected ? Colors.white70 : Colors.grey,
@@ -2204,7 +2392,7 @@ class _HorizontalDatePickerState extends State<_HorizontalDatePicker> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    d['date']!,
+                    dayDate.day.toString(),
                     style: TextStyle(
                       fontSize: 15,
                       color: isSelected ? Colors.white : AppColors.mockupDark,
@@ -2215,7 +2403,7 @@ class _HorizontalDatePickerState extends State<_HorizontalDatePicker> {
               ),
             ),
           );
-        }).toList(),
+        }),
       ),
     );
   }
@@ -2223,47 +2411,67 @@ class _HorizontalDatePickerState extends State<_HorizontalDatePicker> {
 
 // ─── Mobile Timeline Appointments list ───────────────────────────────────────
 class _TimelineAppointments extends StatelessWidget {
-  final List<Map<String, dynamic>> appointments = [
-    {
-      'time': '09:00',
-      'apt': {
-        'name': 'Dr. Leslie Alexander',
-        'specialty': 'Orthopedic surgeon',
-        'timeText': 'Wednesday, 24 March · 09:30 AM',
-        'initials': 'LA',
+  final DateTime selectedDate;
+
+  const _TimelineAppointments({required this.selectedDate});
+
+  List<Map<String, dynamic>> getTimelineSlots() {
+    final appts = MockDataRepository.instance.appointments.where((a) =>
+        a.dateTime.year == selectedDate.year &&
+        a.dateTime.month == selectedDate.month &&
+        a.dateTime.day == selectedDate.day).toList();
+
+    final slots = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00'];
+    return slots.map((timeStr) {
+      final hour = int.parse(timeStr.split(':')[0]);
+      
+      PatientAppointment? matchingAppt;
+      for (final a in appts) {
+        if (a.dateTime.hour == hour) {
+          matchingAppt = a;
+          break;
+        }
       }
-    },
-    {
-      'time': '10:00',
-      'apt': null,
-    },
-    {
-      'time': '11:00',
-      'apt': {
-        'name': 'Dr. Wade Warren',
-        'specialty': 'Physiotherapist',
-        'timeText': 'Wednesday, 24 March · 11:30 AM',
-        'initials': 'WW',
+
+      if (matchingAppt != null) {
+        Patient? patient;
+        for (final p in MockDataRepository.instance.patients) {
+          if (p.id == matchingAppt.patientId) {
+            patient = p;
+            break;
+          }
+        }
+        final patientName = patient?.name ?? 'Patient (${matchingAppt.patientId})';
+        final initials = patientName.isNotEmpty
+            ? patientName.split(' ').map((e) => e[0]).take(2).join().toUpperCase()
+            : 'PT';
+        return {
+          'time': timeStr,
+          'apt': {
+            'name': patientName,
+            'specialty': matchingAppt.reason,
+            'timeText': '${DateFormat('EEEE, d MMMM').format(selectedDate)} · ${DateFormat('hh:mm a').format(matchingAppt.dateTime)}',
+            'initials': initials,
+          }
+        };
+      } else {
+        return {
+          'time': timeStr,
+          'apt': null,
+        };
       }
-    },
-    {
-      'time': '12:00',
-      'apt': null,
-    },
-    {
-      'time': '13:00',
-      'apt': null,
-    },
-  ];
+    }).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final slots = getTimelineSlots();
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: appointments.length,
+      itemCount: slots.length,
       itemBuilder: (context, index) {
-        final item = appointments[index];
+        final item = slots[index];
         final time = item['time'] as String;
         final apt = item['apt'] as Map<String, dynamic>?;
 

@@ -1636,29 +1636,70 @@ Metropolitan General Hospital
     final now = DateTime.now();
     return List.generate(30, (i) {
       final date = now.subtract(Duration(days: 29 - i));
-      final approved = 100 + (i * 1.2 + (i % 7 * 3)).round();
-      final rejected = 10 + (i % 5);
-      final pending  = 15 + (i % 8);
+      final dayAuths = authorizations.where((a) =>
+          a.requestedAt.year == date.year &&
+          a.requestedAt.month == date.month &&
+          a.requestedAt.day == date.day).toList();
+
+      final approved = dayAuths.where((a) => a.status == AuthorizationStatus.approved).length;
+      final rejected = dayAuths.where((a) => a.status == AuthorizationStatus.rejected).length;
+      final pending  = dayAuths.where((a) => a.status == AuthorizationStatus.pending || a.status == AuthorizationStatus.underReview || a.status == AuthorizationStatus.escalated).length;
+
       return {
         'date': date,
         'approved': approved,
         'rejected': rejected,
         'pending': pending,
-        'total': approved + rejected + pending,
+        'total': dayAuths.length,
       };
     });
   }
 
   // ─── Disease Statistics ───────────────────────────────────────────────────
-  List<Map<String, dynamic>> get diseaseStats => [
-    {'diagnosis': 'Cardiovascular', 'icd': 'I00-I99', 'count': 423, 'pct': 0.229},
-    {'diagnosis': 'Musculoskeletal', 'icd': 'M00-M99', 'count': 387, 'pct': 0.209},
-    {'diagnosis': 'Oncology', 'icd': 'C00-D49',  'count': 312, 'pct': 0.169},
-    {'diagnosis': 'Neurological', 'icd': 'G00-G99',  'count': 228, 'pct': 0.123},
-    {'diagnosis': 'Respiratory', 'icd': 'J00-J99',  'count': 184, 'pct': 0.100},
-    {'diagnosis': 'Endocrine', 'icd': 'E00-E89',  'count': 156, 'pct': 0.084},
-    {'diagnosis': 'Other', 'icd': 'Various',  'count': 157, 'pct': 0.085},
-  ];
+  List<Map<String, dynamic>> get diseaseStats {
+    final List<Map<String, dynamic>> categories = [
+      {'diagnosis': 'Cardiovascular', 'icd': 'I00-I99', 'prefix': ['I'], 'count': 0},
+      {'diagnosis': 'Musculoskeletal', 'icd': 'M00-M99', 'prefix': ['M'], 'count': 0},
+      {'diagnosis': 'Oncology', 'icd': 'C00-D49', 'prefix': ['C', 'D'], 'count': 0},
+      {'diagnosis': 'Neurological', 'icd': 'G00-G99', 'prefix': ['G'], 'count': 0},
+      {'diagnosis': 'Respiratory', 'icd': 'J00-J99', 'prefix': ['J'], 'count': 0},
+      {'diagnosis': 'Endocrine', 'icd': 'E00-E89', 'prefix': ['E'], 'count': 0},
+      {'diagnosis': 'Other', 'icd': 'Various', 'prefix': <String>[], 'count': 0},
+    ];
+
+    int totalCount = 0;
+    for (final auth in authorizations) {
+      if (auth.diagnosisCode.isEmpty) continue;
+      final codeUpper = auth.diagnosisCode.toUpperCase();
+      final firstLetter = codeUpper[0];
+      
+      bool matched = false;
+      for (final cat in categories) {
+        final prefixes = cat['prefix'] as List<String>;
+        if (prefixes.contains(firstLetter)) {
+          cat['count'] = (cat['count'] as int) + 1;
+          totalCount++;
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) {
+        categories.last['count'] = (categories.last['count'] as int) + 1;
+        totalCount++;
+      }
+    }
+
+    return categories.map((cat) {
+      final count = cat['count'] as int;
+      final pct = totalCount == 0 ? 0.0 : count / totalCount;
+      return {
+        'diagnosis': cat['diagnosis'],
+        'icd': cat['icd'],
+        'count': count,
+        'pct': pct,
+      };
+    }).toList();
+  }
 
   // ─── Scheduled Appointments ───────────────────────────────────────────────
   static final List<PatientAppointment> _defaultAppointments = [
