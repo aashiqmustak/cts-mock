@@ -37,8 +37,6 @@ dependencies:
   printing: ^5.14.2
 
   # Icons
-  phosphor_flutter: ^2.1.0
-
   # Supabase
   supabase_flutter: ^2.15.4
 
@@ -60,6 +58,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   collection: ^1.19.1
   file_picker: ^11.0.3
+  phosphoricons_flutter: ^1.0.0
 
 dev_dependencies:
   flutter_test:

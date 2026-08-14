@@ -89,6 +89,7 @@ class DataRepository {
   late final SyncedList<PatientAppointment> appointments;
   late final SyncedList<PatientSurgery> surgeries;
 
+  bool _supabaseAvailable = true;
   bool _initialized = false;
 
   Future<void> initialize() async {
@@ -104,6 +105,7 @@ class DataRepository {
   Future<void> loadFromSupabase() async {
     try {
       final response = await _supabase.from('priorx_store').select();
+      _supabaseAvailable = true;
       final dataMap = {for (var item in response) item['key'] as String: item['data']};
 
       // Load patients
@@ -217,7 +219,8 @@ class DataRepository {
       }
 
     } catch (e) {
-      debugPrint("Failed to load data from Supabase, using defaults: $e");
+      _supabaseAvailable = false;
+      debugPrint("Supabase table 'priorx_store' not accessible. Operating in local mode with default data.");
       if (patients.isEmpty) patients.addAll(_defaultPatients);
       if (doctors.isEmpty) doctors.addAll(_defaultDoctors);
       if (authorizations.isEmpty) authorizations.addAll(_defaultAuthorizations);
@@ -232,12 +235,16 @@ class DataRepository {
   }
 
   Future<void> saveToSupabase(String key, List<Map<String, dynamic>> jsonData) async {
+    if (!_supabaseAvailable) return;
     try {
       await _supabase.from('priorx_store').upsert({
         'key': key,
         'data': jsonData,
       });
     } catch (e) {
+      if (e.toString().contains('PGRST205') || e.toString().contains('priorx_store')) {
+        _supabaseAvailable = false;
+      }
       debugPrint("Failed to save $key to Supabase: $e");
     }
   }

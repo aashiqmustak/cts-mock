@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/constants/route_constants.dart';
 import '../../core/theme/app_colors.dart';
@@ -15,8 +15,8 @@ import 'command_palette.dart';
 // ─── Navigation Item Definition ───────────────────────────────────────────────
 class NavItem {
   final String label;
-  final PhosphorIconData icon;
-  final PhosphorIconData activeIcon;
+  final IconData icon;
+  final IconData activeIcon;
   final String route;
   final List<Permission> requiredPermissions;
   final bool requireAny;  // if true, any permission suffices; if false, all required
