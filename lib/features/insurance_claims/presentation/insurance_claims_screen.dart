@@ -11,6 +11,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/authorizations_provider.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../models/models.dart';
+import '../../../core/constants/app_constants.dart';
 
 // ─── Active Insurance Model & Provider ───────────────────────────────────────
 class ActiveInsurance {
@@ -121,7 +122,7 @@ class InsuranceOcrNotifier extends StateNotifier<InsuranceOcrState> {
 
       // Call the Flask Python Microservice
       final response = await _dio.post(
-        'http://127.0.0.1:8000/verify',
+        AppConstants.verifyInsuranceEndpoint,
         data: formData,
         options: Options(
           headers: {

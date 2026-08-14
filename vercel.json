@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "cleanUrls": true,
+  "installCommand": "if [ -d \"flutter\" ]; then cd flutter && git pull && cd ..; else git clone -b stable --depth 1 https://github.com/flutter/flutter.git; fi && flutter/bin/flutter config --enable-web",
+  "buildCommand": "flutter/bin/flutter build web --release",
+  "outputDirectory": "build/web",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

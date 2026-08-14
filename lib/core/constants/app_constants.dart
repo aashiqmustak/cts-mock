@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 /// MediAuth AI — Application Constants
 /// Central hub for all app-wide configuration values.
 class AppConstants {
@@ -87,6 +89,27 @@ class AppConstants {
   static const int chartDays90  = 90;
 
   // ─── ML Service Endpoints ──────────────────────────────────────────────────
-  static const String appealMlEndpoint = 'http://127.0.0.1:8000/predict_appeal';
+  static String get appealMlEndpoint {
+    if (kIsWeb) {
+      final origin = Uri.base.origin;
+      if (Uri.base.host == 'localhost' || Uri.base.host == '127.0.0.1') {
+        return 'http://127.0.0.1:8000/predict_appeal';
+      }
+      return '$origin/api/predict_appeal';
+    }
+    return 'http://127.0.0.1:8000/predict_appeal';
+  }
+
+  static String get verifyInsuranceEndpoint {
+    if (kIsWeb) {
+      final origin = Uri.base.origin;
+      if (Uri.base.host == 'localhost' || Uri.base.host == '127.0.0.1') {
+        return 'http://127.0.0.1:8000/verify';
+      }
+      return '$origin/api/verify';
+    }
+    return 'http://127.0.0.1:8000/verify';
+  }
+
   static const String priorAuthEndpoint = 'http://3.85.124.27:8000/analyze';
 }
