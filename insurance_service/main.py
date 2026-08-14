@@ -2,8 +2,19 @@ import logging
 import os
 import re
 import time
+import pickle
+# pyrefly: ignore [missing-import]
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+
+try:
+    import pandas as pd
+    from sklearn.model_selection import train_test_split
+    from sklearn.preprocessing import OneHotEncoder, StandardScaler
+    HAS_ML = True
+except ImportError:
+    HAS_ML = False
+    logging.getLogger("insurance_service").warning("pandas or scikit-learn not installed. ML prediction will run in fallback mock mode.")
 
 # Setup logging
 logging.basicConfig(
@@ -205,6 +216,164 @@ def verify_insurance():
     except Exception as e:
         logger.error(f"Error processing verification request: {str(e)}", exc_info=True)
         return jsonify({"detail": f"An error occurred during verification: {str(e)}"}), 500
+
+def resolve_path(rel_path):
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    path1 = os.path.abspath(os.path.join(base_dir, "..", rel_path))
+    if os.path.exists(path1):
+        return path1
+    path2 = os.path.abspath(os.path.join(base_dir, rel_path))
+    if os.path.exists(path2):
+        return path2
+    if os.path.exists(rel_path):
+        return os.path.abspath(rel_path)
+    return rel_path
+
+# ML Model & Preprocessing setup
+model = None
+scaler = None
+ohe = None
+binary_columns = ["previous_treatment_failed", "clinical_guideline_match"]
+severity_mapping = {"Low": 0, "Medium": 1, "High": 2}
+numerical_columns = ["patient_age", "medical_necessity_score", "documentation_completeness_pct"]
+ohe_columns = ['procedure', 'denial_reason', 'previous_authorization_history']
+
+def init_ml():
+    global model, scaler, ohe
+    if not HAS_ML:
+        logger.warning("Machine learning libraries not available. ML prediction will run in mock mode.")
+        return
+    try:
+        dataset_path = resolve_path("appeal-system/appeal_dataset.csv")
+        model_path = resolve_path("appeal-system/best_appeal_model.pkl")
+        
+        logger.info(f"Loading dataset from: {dataset_path}")
+        logger.info(f"Loading model from: {model_path}")
+        
+        if not os.path.exists(dataset_path) or not os.path.exists(model_path):
+            logger.warning("Dataset or model pickle not found. ML prediction endpoint will run in mock mode.")
+            return
+            
+        with open(model_path, "rb") as f:
+            model = pickle.load(f)
+            
+        df = pd.read_csv(dataset_path)
+        df = df.drop(["appeal_id", "appeal_submitted", "appeal_success_probability", "predicted_appeal_outcome"], axis=1)
+        X = df.drop("actual_appeal_outcome", axis=1)
+        y = df["actual_appeal_outcome"].map({"Rejected": 0, "Approved": 1})
+        
+        X_train, _, _, _ = train_test_split(
+            X, y, test_size=0.20, random_state=42, stratify=y
+        )
+        
+        for col in binary_columns:
+            X_train[col] = X_train[col].map({"No": 0, "Yes": 1})
+            
+        X_train["patient_severity"] = X_train["patient_severity"].map(severity_mapping)
+        
+        ohe = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
+        ohe.fit(X_train[ohe_columns])
+        
+        scaler = StandardScaler()
+        scaler.fit(X_train[numerical_columns])
+        
+        logger.info("Successfully loaded ML model and refitted preprocessors.")
+    except Exception as e:
+        logger.error(f"Error during ML initialization: {str(e)}", exc_info=True)
+        model = None
+
+# Initialize ML on startup
+init_ml()
+
+@app.route("/predict_appeal", methods=["POST"])
+def predict_appeal():
+    """
+    Predict the success probability of an appeal based on case features.
+    """
+    # Verify API Key authentication
+    is_auth, auth_res, status_code = verify_api_key()
+    if not is_auth:
+        return jsonify({"detail": auth_res}), status_code
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"detail": "Missing request body"}), 400
+
+    logger.info(f"Received ML prediction request: {data}")
+    
+    required_keys = [
+        "patient_age", "procedure", "denial_reason", "medical_necessity_score",
+        "documentation_completeness_pct", "patient_severity", "previous_treatment_failed",
+        "clinical_guideline_match", "previous_authorization_history"
+    ]
+    for key in required_keys:
+        if key not in data:
+            logger.error(f"Missing required parameter: {key}")
+            return jsonify({"detail": f"Missing required parameter: {key}"}), 400
+
+    try:
+        if HAS_ML and model is not None and scaler is not None and ohe is not None:
+            df_in = pd.DataFrame([data])
+            
+            for col in binary_columns:
+                df_in[col] = df_in[col].map({"No": 0, "Yes": 1})
+                
+            df_in["patient_severity"] = df_in["patient_severity"].map(severity_mapping)
+            
+            scaled_nums = scaler.transform(df_in[numerical_columns])
+            df_scaled = pd.DataFrame(scaled_nums, columns=numerical_columns)
+            
+            encoded_cats = ohe.transform(df_in[ohe_columns])
+            ohe_feature_names = ohe.get_feature_names_out(ohe_columns)
+            df_encoded = pd.DataFrame(encoded_cats, columns=ohe_feature_names)
+            
+            remaining_cols = ['previous_treatment_failed', 'clinical_guideline_match', 'patient_severity']
+            df_preprocessed = pd.concat([df_scaled, df_in[remaining_cols], df_encoded], axis=1)
+            
+            prob_success = float(model.predict_proba(df_preprocessed)[0][1])
+            
+            confidence_low = max(0.0, prob_success - 0.12)
+            confidence_high = min(1.0, prob_success + 0.12)
+            
+            logger.info(f"Real ML Inference Succeeded. Success probability: {prob_success:.4f}")
+            return jsonify({
+                "success": True,
+                "prediction": {
+                    "success_probability": prob_success,
+                    "confidence_low": confidence_low,
+                    "confidence_high": confidence_high
+                }
+            })
+        else:
+            logger.warning("ML model or preprocessors not loaded. Using fallback mock inference.")
+            
+            med_score = int(data.get("medical_necessity_score", 50))
+            guideline_match = data.get("clinical_guideline_match") == "Yes"
+            doc_pct = int(data.get("documentation_completeness_pct", 50))
+            
+            prob = 0.3
+            if guideline_match:
+                prob += 0.25
+            prob += (med_score / 100.0) * 0.3
+            prob += (doc_pct / 100.0) * 0.15
+            
+            prob = min(0.98, max(0.05, prob))
+            
+            confidence_low = max(0.0, prob - 0.1)
+            confidence_high = min(1.0, prob + 0.15)
+            
+            return jsonify({
+                "success": True,
+                "prediction": {
+                    "success_probability": prob,
+                    "confidence_low": confidence_low,
+                    "confidence_high": confidence_high
+                }
+            })
+            
+    except Exception as err:
+        logger.error(f"Error during ML prediction endpoint: {str(err)}", exc_info=True)
+        return jsonify({"detail": f"Error running ML model inference: {str(err)}"}), 500
 
 if __name__ == "__main__":
     logger.info("Starting Flask server...")
