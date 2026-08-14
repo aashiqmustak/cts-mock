@@ -102,163 +102,273 @@ class DataRepository {
     }
   }
 
+  static Map<String, dynamic> camelToSnakeCase(Map<String, dynamic> map) {
+    final result = <String, dynamic>{};
+    map.forEach((key, value) {
+      final newKey = key.replaceAllMapped(
+        RegExp(r'([A-Z])'),
+        (match) => '_${match.group(1)!.toLowerCase()}',
+      );
+      result[newKey] = value;
+    });
+    return result;
+  }
+
+  static Map<String, dynamic> snakeToCamelCase(Map<String, dynamic> map) {
+    final result = <String, dynamic>{};
+    map.forEach((key, value) {
+      final newKey = key.replaceAllMapped(
+        RegExp(r'_([a-z])'),
+        (match) => match.group(1)!.toUpperCase(),
+      );
+      result[newKey] = value;
+    });
+    return result;
+  }
+
+  void _loadDefaults() {
+    if (patients.isEmpty) patients.addAll(_defaultPatients);
+    if (doctors.isEmpty) doctors.addAll(_defaultDoctors);
+    if (authorizations.isEmpty) authorizations.addAll(_defaultAuthorizations);
+    if (aiDecisions.isEmpty) aiDecisions.addAll(_defaultAiDecisions);
+    if (appeals.isEmpty) appeals.addAll(_defaultAppeals);
+    if (auditLogs.isEmpty) auditLogs.addAll(_defaultAuditLogs);
+    if (notifications.isEmpty) notifications.addAll(_defaultNotifications);
+    if (fhirSyncs.isEmpty) fhirSyncs.addAll(_defaultFhirSyncs);
+    if (appointments.isEmpty) appointments.addAll(_defaultAppointments);
+    if (surgeries.isEmpty) surgeries.addAll(_defaultSurgeries);
+  }
+
   Future<void> loadFromSupabase() async {
     try {
-      final response = await _supabase.from('priorx_store').select();
       _supabaseAvailable = true;
-      final dataMap = {for (var item in response) item['key'] as String: item['data']};
 
-      // Load patients
-      if (dataMap.containsKey('patients')) {
+      // 1. Load Patients
+      try {
+        final res = await _supabase.from('patients').select();
         patients.clear();
-        for (var item in dataMap['patients'] as List) {
-          patients.add(_patientFromJson(item));
+        for (var item in res) {
+          patients.add(_patientFromJson(snakeToCamelCase(item)));
         }
-      } else {
-        patients.addAll(_defaultPatients);
-        await saveToSupabase('patients', patients.map(_patientToJson).toList());
+      } catch (e) {
+        debugPrint("Error loading patients from Supabase: $e");
+        if (patients.isEmpty) patients.addAll(_defaultPatients);
       }
 
-      // Load doctors
-      if (dataMap.containsKey('doctors')) {
+      // 2. Load Doctors
+      try {
+        final res = await _supabase.from('doctors').select();
         doctors.clear();
-        for (var item in dataMap['doctors'] as List) {
-          doctors.add(_doctorFromJson(item));
+        for (var item in res) {
+          doctors.add(_doctorFromJson(snakeToCamelCase(item)));
         }
-      } else {
-        doctors.addAll(_defaultDoctors);
-        await saveToSupabase('doctors', doctors.map(_doctorToJson).toList());
+      } catch (e) {
+        debugPrint("Error loading doctors from Supabase: $e");
+        if (doctors.isEmpty) doctors.addAll(_defaultDoctors);
       }
 
-      // Load authorizations
-      if (dataMap.containsKey('authorizations')) {
+      // 3. Load Authorizations
+      try {
+        final res = await _supabase.from('authorizations').select();
         authorizations.clear();
-        for (var item in dataMap['authorizations'] as List) {
-          authorizations.add(_authorizationFromJson(item));
+        for (var item in res) {
+          authorizations.add(_authorizationFromJson(snakeToCamelCase(item)));
         }
-      } else {
-        authorizations.addAll(_defaultAuthorizations);
-        await saveToSupabase('authorizations', authorizations.map(_authorizationToJson).toList());
+      } catch (e) {
+        debugPrint("Error loading authorizations from Supabase: $e");
+        if (authorizations.isEmpty) authorizations.addAll(_defaultAuthorizations);
       }
 
-      // Load ai_decisions
-      if (dataMap.containsKey('ai_decisions')) {
+      // 4. Load AI Decisions
+      try {
+        final res = await _supabase.from('ai_decisions').select();
         aiDecisions.clear();
-        for (var item in dataMap['ai_decisions'] as List) {
-          aiDecisions.add(_aiDecisionFromJson(item));
+        for (var item in res) {
+          aiDecisions.add(_aiDecisionFromJson(snakeToCamelCase(item)));
         }
-      } else {
-        aiDecisions.addAll(_defaultAiDecisions);
-        await saveToSupabase('ai_decisions', aiDecisions.map(_aiDecisionToJson).toList());
+      } catch (e) {
+        debugPrint("Error loading ai_decisions from Supabase: $e");
+        if (aiDecisions.isEmpty) aiDecisions.addAll(_defaultAiDecisions);
       }
 
-      // Load appeals
-      if (dataMap.containsKey('appeals')) {
+      // 5. Load Appeals
+      try {
+        final res = await _supabase.from('appeals').select();
         appeals.clear();
-        for (var item in dataMap['appeals'] as List) {
-          appeals.add(_appealFromJson(item));
+        for (var item in res) {
+          appeals.add(_appealFromJson(snakeToCamelCase(item)));
         }
-      } else {
-        appeals.addAll(_defaultAppeals);
-        await saveToSupabase('appeals', appeals.map(_appealToJson).toList());
+      } catch (e) {
+        debugPrint("Error loading appeals from Supabase: $e");
+        if (appeals.isEmpty) appeals.addAll(_defaultAppeals);
       }
 
-      // Load audit_logs
-      if (dataMap.containsKey('audit_logs')) {
+      // 6. Load Audit Logs
+      try {
+        final res = await _supabase.from('audit_logs').select();
         auditLogs.clear();
-        for (var item in dataMap['audit_logs'] as List) {
-          auditLogs.add(_auditLogFromJson(item));
+        for (var item in res) {
+          auditLogs.add(_auditLogFromJson(snakeToCamelCase(item)));
         }
-      } else {
-        auditLogs.addAll(_defaultAuditLogs);
-        await saveToSupabase('audit_logs', auditLogs.map(_auditLogToJson).toList());
+      } catch (e) {
+        debugPrint("Error loading audit_logs from Supabase: $e");
+        if (auditLogs.isEmpty) auditLogs.addAll(_defaultAuditLogs);
       }
 
-      // Load notifications
-      if (dataMap.containsKey('notifications')) {
+      // 7. Load Notifications
+      try {
+        final res = await _supabase.from('notifications').select();
         notifications.clear();
-        for (var item in dataMap['notifications'] as List) {
-          notifications.add(_notificationFromJson(item));
+        for (var item in res) {
+          notifications.add(_notificationFromJson(snakeToCamelCase(item)));
         }
-      } else {
-        notifications.addAll(_defaultNotifications);
-        await saveToSupabase('notifications', notifications.map(_notificationToJson).toList());
+      } catch (e) {
+        debugPrint("Error loading notifications from Supabase: $e");
+        if (notifications.isEmpty) notifications.addAll(_defaultNotifications);
       }
 
-      // Load fhir_syncs
-      if (dataMap.containsKey('fhir_syncs')) {
+      // 8. Load FHIR Syncs
+      try {
+        final res = await _supabase.from('fhir_syncs').select();
         fhirSyncs.clear();
-        for (var item in dataMap['fhir_syncs'] as List) {
-          fhirSyncs.add(_fhirSyncFromJson(item));
+        for (var item in res) {
+          fhirSyncs.add(_fhirSyncFromJson(snakeToCamelCase(item)));
         }
-      } else {
-        fhirSyncs.addAll(_defaultFhirSyncs);
-        await saveToSupabase('fhir_syncs', fhirSyncs.map(_fhirSyncToJson).toList());
+      } catch (e) {
+        debugPrint("Error loading fhir_syncs from Supabase: $e");
+        if (fhirSyncs.isEmpty) fhirSyncs.addAll(_defaultFhirSyncs);
       }
 
-      // Load appointments
-      if (dataMap.containsKey('appointments')) {
+      // 9. Load Appointments
+      try {
+        final res = await _supabase.from('appointments').select();
         appointments.clear();
-        for (var item in dataMap['appointments'] as List) {
-          appointments.add(_appointmentFromJson(item));
+        for (var item in res) {
+          appointments.add(_appointmentFromJson(snakeToCamelCase(item)));
         }
-      } else {
-        appointments.addAll(_defaultAppointments);
-        await saveToSupabase('appointments', appointments.map(_appointmentToJson).toList());
+      } catch (e) {
+        debugPrint("Error loading appointments from Supabase: $e");
+        if (appointments.isEmpty) appointments.addAll(_defaultAppointments);
       }
 
-      // Load surgeries
-      if (dataMap.containsKey('surgeries')) {
+      // 10. Load Surgeries
+      try {
+        final res = await _supabase.from('surgeries').select();
         surgeries.clear();
-        for (var item in dataMap['surgeries'] as List) {
-          surgeries.add(_surgeryFromJson(item));
+        for (var item in res) {
+          surgeries.add(_surgeryFromJson(snakeToCamelCase(item)));
         }
-      } else {
-        surgeries.addAll(_defaultSurgeries);
-        await saveToSupabase('surgeries', surgeries.map(_surgeryToJson).toList());
+      } catch (e) {
+        debugPrint("Error loading surgeries from Supabase: $e");
+        if (surgeries.isEmpty) surgeries.addAll(_defaultSurgeries);
       }
 
     } catch (e) {
       _supabaseAvailable = false;
-      debugPrint("Supabase table 'priorx_store' not accessible. Operating in local mode with default data.");
-      if (patients.isEmpty) patients.addAll(_defaultPatients);
-      if (doctors.isEmpty) doctors.addAll(_defaultDoctors);
-      if (authorizations.isEmpty) authorizations.addAll(_defaultAuthorizations);
-      if (aiDecisions.isEmpty) aiDecisions.addAll(_defaultAiDecisions);
-      if (appeals.isEmpty) appeals.addAll(_defaultAppeals);
-      if (auditLogs.isEmpty) auditLogs.addAll(_defaultAuditLogs);
-      if (notifications.isEmpty) notifications.addAll(_defaultNotifications);
-      if (fhirSyncs.isEmpty) fhirSyncs.addAll(_defaultFhirSyncs);
-      if (appointments.isEmpty) appointments.addAll(_defaultAppointments);
-      if (surgeries.isEmpty) surgeries.addAll(_defaultSurgeries);
+      debugPrint("Supabase not accessible. Operating in local mode with default data: $e");
+      _loadDefaults();
     }
   }
 
-  Future<void> saveToSupabase(String key, List<Map<String, dynamic>> jsonData) async {
+  Future<void> syncPatients() async {
     if (!_supabaseAvailable) return;
     try {
-      await _supabase.from('priorx_store').upsert({
-        'key': key,
-        'data': jsonData,
-      });
+      final list = patients.map((p) => camelToSnakeCase(_patientToJson(p))).toList();
+      await _supabase.from('patients').upsert(list);
     } catch (e) {
-      if (e.toString().contains('PGRST205') || e.toString().contains('priorx_store')) {
-        _supabaseAvailable = false;
-      }
-      debugPrint("Failed to save $key to Supabase: $e");
+      debugPrint("Failed to sync patients to Supabase: $e");
     }
   }
 
-  Future<void> syncPatients() => saveToSupabase('patients', patients.map(_patientToJson).toList());
-  Future<void> syncDoctors() => saveToSupabase('doctors', doctors.map(_doctorToJson).toList());
-  Future<void> syncAuthorizations() => saveToSupabase('authorizations', authorizations.map(_authorizationToJson).toList());
-  Future<void> syncAiDecisions() => saveToSupabase('ai_decisions', aiDecisions.map(_aiDecisionToJson).toList());
-  Future<void> syncAppeals() => saveToSupabase('appeals', appeals.map(_appealToJson).toList());
-  Future<void> syncAuditLogs() => saveToSupabase('audit_logs', auditLogs.map(_auditLogToJson).toList());
-  Future<void> syncNotifications() => saveToSupabase('notifications', notifications.map(_notificationToJson).toList());
-  Future<void> syncFhirSyncs() => saveToSupabase('fhir_syncs', fhirSyncs.map(_fhirSyncToJson).toList());
-  Future<void> syncAppointments() => saveToSupabase('appointments', appointments.map(_appointmentToJson).toList());
-  Future<void> syncSurgeries() => saveToSupabase('surgeries', surgeries.map(_surgeryToJson).toList());
+  Future<void> syncDoctors() async {
+    if (!_supabaseAvailable) return;
+    try {
+      final list = doctors.map((d) => camelToSnakeCase(_doctorToJson(d))).toList();
+      await _supabase.from('doctors').upsert(list);
+    } catch (e) {
+      debugPrint("Failed to sync doctors to Supabase: $e");
+    }
+  }
+
+  Future<void> syncAuthorizations() async {
+    if (!_supabaseAvailable) return;
+    try {
+      final list = authorizations.map((a) => camelToSnakeCase(_authorizationToJson(a))).toList();
+      await _supabase.from('authorizations').upsert(list);
+    } catch (e) {
+      debugPrint("Failed to sync authorizations to Supabase: $e");
+    }
+  }
+
+  Future<void> syncAiDecisions() async {
+    if (!_supabaseAvailable) return;
+    try {
+      final list = aiDecisions.map((d) => camelToSnakeCase(_aiDecisionToJson(d))).toList();
+      await _supabase.from('ai_decisions').upsert(list);
+    } catch (e) {
+      debugPrint("Failed to sync ai_decisions to Supabase: $e");
+    }
+  }
+
+  Future<void> syncAppeals() async {
+    if (!_supabaseAvailable) return;
+    try {
+      final list = appeals.map((a) => camelToSnakeCase(_appealToJson(a))).toList();
+      await _supabase.from('appeals').upsert(list);
+    } catch (e) {
+      debugPrint("Failed to sync appeals to Supabase: $e");
+    }
+  }
+
+  Future<void> syncAuditLogs() async {
+    if (!_supabaseAvailable) return;
+    try {
+      final list = auditLogs.map((l) => camelToSnakeCase(_auditLogToJson(l))).toList();
+      await _supabase.from('audit_logs').upsert(list);
+    } catch (e) {
+      debugPrint("Failed to sync audit_logs to Supabase: $e");
+    }
+  }
+
+  Future<void> syncNotifications() async {
+    if (!_supabaseAvailable) return;
+    try {
+      final list = notifications.map((n) => camelToSnakeCase(_notificationToJson(n))).toList();
+      await _supabase.from('notifications').upsert(list);
+    } catch (e) {
+      debugPrint("Failed to sync notifications to Supabase: $e");
+    }
+  }
+
+  Future<void> syncFhirSyncs() async {
+    if (!_supabaseAvailable) return;
+    try {
+      final list = fhirSyncs.map((f) => camelToSnakeCase(_fhirSyncToJson(f))).toList();
+      await _supabase.from('fhir_syncs').upsert(list);
+    } catch (e) {
+      debugPrint("Failed to sync fhir_syncs to Supabase: $e");
+    }
+  }
+
+  Future<void> syncAppointments() async {
+    if (!_supabaseAvailable) return;
+    try {
+      final list = appointments.map((a) => camelToSnakeCase(_appointmentToJson(a))).toList();
+      await _supabase.from('appointments').upsert(list);
+    } catch (e) {
+      debugPrint("Failed to sync appointments to Supabase: $e");
+    }
+  }
+
+  Future<void> syncSurgeries() async {
+    if (!_supabaseAvailable) return;
+    try {
+      final list = surgeries.map((s) => camelToSnakeCase(_surgeryToJson(s))).toList();
+      await _supabase.from('surgeries').upsert(list);
+    } catch (e) {
+      debugPrint("Failed to sync surgeries to Supabase: $e");
+    }
+  }
 
   /// Wipes all data records across all Supabase tables while keeping table schemas intact.
   Future<void> purgeAllSupabaseData() async {

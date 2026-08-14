@@ -9,6 +9,7 @@ import '../../../models/models.dart';
 import '../../../repositories/data_repository.dart';
 import 'package:dio/dio.dart';
 import '../../../core/constants/app_constants.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AppealsScreen extends ConsumerStatefulWidget {
   const AppealsScreen({super.key});
@@ -472,6 +473,36 @@ class _AppealsScreenState extends ConsumerState<AppealsScreen> {
                               );
 
                               MockDataRepository.instance.appeals.insert(0, newAppeal);
+
+                               // Persist to typed Supabase appeals table
+                               final appealMap = {
+                                 'id': 'appeal-$randomId',
+                                 'appeal_number': appealNum,
+                                 'authorization_id': selectedRequest!.id,
+                                 'auth_number': selectedRequest!.authNumber,
+                                 'patient_name': selectedRequest!.patientName,
+                                 'filed_by_id': 'usr-006', // Mock Current Hospital Admin ID
+                                 'filed_by_name': 'Sarah Jenkins',
+                                 'status': 'submitted',
+                                 'filed_at': DateTime.now().toIso8601String(),
+                                 'decided_at': null,
+                                 'grounds_for_appeal': groundsController.text.trim(),
+                                 'supporting_evidence': treatmentController.text.trim(),
+                                 'ai_success_probability': prob,
+                                 'ai_probability_low': low,
+                                 'ai_probability_high': high,
+                                 'draft_appeal_letter': newAppeal.draftAppealLetter,
+                                 'rejection_reason': null,
+                                 'document_ids': mockDocuments,
+                               };
+
+                               try {
+                                 final client = Supabase.instance.client;
+                                 await client.from('appeals').insert(appealMap);
+                                 debugPrint("Successfully inserted appeal into Supabase typed table.");
+                               } catch (dbErr) {
+                                 debugPrint("Error writing appeal to Supabase typed table: $dbErr");
+                               }
 
                               // 4. Update authorization status to underReview
                               final idx = MockDataRepository.instance.authorizations

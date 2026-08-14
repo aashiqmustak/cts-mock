@@ -12,6 +12,8 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../models/models.dart';
 import '../../../repositories/data_repository.dart';
+import '../../../core/providers/auth_provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide MultipartFile;
 
 class CreateAuthorizationScreen extends ConsumerStatefulWidget {
   const CreateAuthorizationScreen({super.key});
@@ -25,26 +27,26 @@ class _CreateAuthorizationScreenState extends ConsumerState<CreateAuthorizationS
   final _steps = ['Patient', 'Diagnosis', 'Procedure', 'Insurance', 'Review'];
 
   // Patient fields
-  final nameCtrl = TextEditingController(text: 'John Smith');
-  final dobCtrl = TextEditingController(text: '01/15/1970');
-  final memberIdCtrl = TextEditingController(text: 'BCBS-789012');
-  final mrnCtrl = TextEditingController(text: 'MRN-998822');
+  final nameCtrl = TextEditingController(text: '');
+  final dobCtrl = TextEditingController(text: '');
+  final memberIdCtrl = TextEditingController(text: '');
+  final mrnCtrl = TextEditingController(text: '');
 
   // Diagnosis fields
-  final icdCodeCtrl = TextEditingController(text: 'I25.10');
-  final diagDescCtrl = TextEditingController(text: 'Atherosclerotic Heart Disease');
-  final notesCtrl = TextEditingController(text: 'Patient reports progressive chest pain on exertion. Prior trials of beta-blockers yielded minimal relief.');
+  final icdCodeCtrl = TextEditingController(text: '');
+  final diagDescCtrl = TextEditingController(text: '');
+  final notesCtrl = TextEditingController(text: '');
 
   // Procedure fields
-  final cptCtrl = TextEditingController(text: '93015');
-  final procDescCtrl = TextEditingController(text: 'Cardiovascular Stress Test');
-  final dateCtrl = TextEditingController(text: '08/30/2026');
-  final facilityNpiCtrl = TextEditingController(text: '1982736450');
+  final cptCtrl = TextEditingController(text: '');
+  final procDescCtrl = TextEditingController(text: '');
+  final dateCtrl = TextEditingController(text: '');
+  final facilityNpiCtrl = TextEditingController(text: '');
 
   // Insurance fields
-  final planCtrl = TextEditingController(text: 'BlueCross PPO Premium');
-  final groupCtrl = TextEditingController(text: 'GRP-554433');
-  final docNpiCtrl = TextEditingController(text: '1092837465');
+  final planCtrl = TextEditingController(text: '');
+  final groupCtrl = TextEditingController(text: '');
+  final docNpiCtrl = TextEditingController(text: '');
   String _priority = 'Routine';
 
   bool _isAnalyzing = false;
@@ -204,6 +206,7 @@ class _CreateAuthorizationScreenState extends ConsumerState<CreateAuthorizationS
   }
 
   void _submitRequest() {
+    final currentUser = ref.read(currentUserProvider);
     final bytes = _getPayloadFileBytes();
     final filename = _uploadedFileName ?? 'clinical_note.txt';
 
@@ -313,8 +316,8 @@ class _CreateAuthorizationScreenState extends ConsumerState<CreateAuthorizationS
                       patientName: nameCtrl.text.trim(),
                       patientDob: dobCtrl.text.trim(),
                       patientInsuranceId: memberIdCtrl.text.trim(),
-                      requestingDoctorId: 'doc-002',
-                      requestingDoctorName: 'Dr. Michael Johnson',
+                      requestingDoctorId: currentUser?.id ?? 'doc-002',
+                      requestingDoctorName: currentUser?.name ?? 'Dr. Michael Johnson',
                       facilityName: 'MediAuth Medical Center',
                       facilityNpi: facilityNpiCtrl.text.trim(),
                       diagnosisCode: icdCodeCtrl.text.trim(),
@@ -344,6 +347,78 @@ class _CreateAuthorizationScreenState extends ConsumerState<CreateAuthorizationS
 
                     MockDataRepository.instance.aiDecisions.insert(0, createdDecision!);
                     MockDataRepository.instance.authorizations.insert(0, createdAuth!);
+
+                    // Persist to typed Supabase tables in the background
+                    final authMap = {
+                      'id': authId,
+                      'auth_number': authNum,
+                      'patient_id': 'pat-009',
+                      'patient_name': nameCtrl.text.trim(),
+                      'patient_dob': dobCtrl.text.trim(),
+                      'patient_insurance_id': memberIdCtrl.text.trim(),
+                      'requesting_doctor_id': currentUser?.id ?? 'doc-002',
+                      'requesting_doctor_name': currentUser?.name ?? 'Dr. Michael Johnson',
+                      'facility_name': 'MediAuth Medical Center',
+                      'facility_npi': facilityNpiCtrl.text.trim(),
+                      'diagnosis_code': icdCodeCtrl.text.trim(),
+                      'diagnosis_description': diagDescCtrl.text.trim(),
+                      'procedure_code': cptCtrl.text.trim(),
+                      'procedure_description': procDescCtrl.text.trim(),
+                      'insurance_plan_id': 'plan-001',
+                      'insurance_plan_name': planCtrl.text.trim(),
+                      'status': status.name,
+                      'priority': _priority.toLowerCase(),
+                      'requested_at': DateTime.now().toIso8601String(),
+                      'reviewed_at': DateTime.now().toIso8601String(),
+                      'decided_at': DateTime.now().toIso8601String(),
+                      'processing_time_ms': (apiProcessingTime * 1000).toInt(),
+                      'reviewer_notes': apiReason,
+                      'rejection_reason': null,
+                      'policy_clause_cited': reasoningChain.isNotEmpty ? reasoningChain.first.policyRef : 'General CMS guidelines',
+                      'document_ids': [],
+                      'ai_decision_id': createdDecision!.id,
+                      'is_urgent': _priority == 'Urgent' || _priority == 'Emergent',
+                      'sla_status': 'within_sla',
+                      'data_source': 'CMS Guidelines',
+                    };
+
+                    final decisionMap = {
+                      'id': createdDecision!.id,
+                      'authorization_id': authId,
+                      'recommendation': createdDecision!.recommendation,
+                      'confidence_score': createdDecision!.confidenceScore,
+                      'medical_necessity_score': createdDecision!.medicalNecessityScore,
+                      'risk_score': createdDecision!.riskScore,
+                      'appeal_likelihood': createdDecision!.appealLikelihood,
+                      'appeal_confidence_low': createdDecision!.appealConfidenceLow,
+                      'appeal_confidence_high': createdDecision!.appealConfidenceHigh,
+                      'auto_escalated': createdDecision!.autoEscalated,
+                      'reasoning_chain': reasoningChain.map((s) => {
+                        'stepNumber': s.stepNumber,
+                        'title': s.title,
+                        'description': s.description,
+                        'citedValue': s.citedValue,
+                        'policyRef': s.policyRef,
+                        'dataSource': s.dataSource,
+                        'passed': s.passed,
+                        'score': s.score,
+                        'details': s.details,
+                      }).toList(),
+                      'final_justification': createdDecision!.finalJustification,
+                      'processed_at': DateTime.now().toIso8601String(),
+                      'processing_time_ms': createdDecision!.processingTimeMs,
+                      'model_version': createdDecision!.modelVersion,
+                      'fraud_signals': createdDecision!.fraudSignals,
+                    };
+
+                    try {
+                      final client = Supabase.instance.client;
+                      await client.from('authorizations').insert(authMap);
+                      await client.from('ai_decisions').insert(decisionMap);
+                      debugPrint("Successfully inserted auth and decision into Supabase typed tables.");
+                    } catch (dbErr) {
+                      debugPrint("Error writing to Supabase typed tables: $dbErr");
+                    }
 
                     setDialogState(() {
                       isLoading = false;
