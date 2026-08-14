@@ -153,6 +153,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                               onSignIn: _signIn,
                               onFillDemo: _fillDemo,
                               onForgotPass: () => context.go(RouteNames.forgotPassword),
+                              onRegister: () => context.go(RouteNames.register),
                               isMobile: isMobile,
                             ),
                           ),
@@ -776,6 +777,7 @@ class _LoginCard extends StatelessWidget {
   final VoidCallback onSignIn;
   final Function(int) onFillDemo;
   final VoidCallback onForgotPass;
+  final VoidCallback onRegister;
   final bool isMobile;
 
   const _LoginCard({
@@ -792,6 +794,7 @@ class _LoginCard extends StatelessWidget {
     required this.onSignIn,
     required this.onFillDemo,
     required this.onForgotPass,
+    required this.onRegister,
     required this.isMobile,
   });
 
@@ -1156,15 +1159,7 @@ class _LoginCard extends StatelessWidget {
                         style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
                       ),
                       GestureDetector(
-                        onTap: () {
-                          // Quick hint message for demo mode or navigation
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Please select a Quick Demo role above to test PriorX features.'),
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                        },
+                        onTap: onRegister,
                         child: const Text(
                           'Create Account',
                           style: TextStyle(

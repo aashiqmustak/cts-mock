@@ -6,6 +6,7 @@ class RouteNames {
   static const String splash         = '/';
   static const String login          = '/login';
   static const String forgotPassword = '/forgot-password';
+  static const String register       = '/register';
 
   // ─── Shell routes (require auth) ──────────────────────────────────────────
   static const String dashboard      = '/dashboard';
