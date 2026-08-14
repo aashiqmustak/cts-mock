@@ -1,0 +1,100 @@
+SAMPLE MEDICAL REPORT — PRIOR AUTHORIZATION
+DEMO DOCUMENT — NOT A REAL PATIENT RECORD
+
+PATIENT INFORMATION
+-------------------
+Patient ID: SYN-P001
+Patient: Alex Kumar (fictional)
+Age: 46 years
+Sex: Male
+Date of Visit: 13 August 2026
+
+CLINICAL COMPLAINT
+------------------
+Patient presents with persistent lower back pain radiating to the left leg for approximately 10 weeks.
+Pain is reported as severe and has progressively affected walking and daily activities.
+
+CLINICAL HISTORY
+----------------
+The patient completed 8 weeks of supervised physical therapy and used prescribed analgesic medication.
+Symptoms have not improved significantly despite conservative treatment.
+No previous lumbar MRI is documented within the available records.
+
+EXAMINATION / FINDINGS
+----------------------
+Physical examination documents restricted lumbar movement and persistent left-leg radiating pain.
+Neurological examination notes reduced sensation in the left lower extremity.
+The treating clinician documents concern for possible lumbar nerve-root involvement.
+
+REQUESTED SERVICE
+-----------------
+Requested procedure: MRI Lumbar Spine
+Procedure code: 72148 (example/demo code)
+Clinical reason: Persistent low-back pain with radiating symptoms despite conservative treatment
+Urgency: Routine
+
+PREVIOUS TREATMENT
+------------------
+Physical therapy: 8 weeks
+Conservative medication management: Completed
+Treatment response: Inadequate improvement
+
+SUPPORTING DOCUMENTATION
+------------------------
+Treating physician order: PRESENT
+Clinical examination: PRESENT
+Previous treatment history: PRESENT
+Relevant clinical findings: PRESENT
+Previous lumbar MRI: NOT DOCUMENTED
+
+MEDICAL NECESSITY STATEMENT
+---------------------------
+Based on the documented persistent symptoms, radiating pain, abnormal sensory findings, and failure
+of conservative treatment, the treating clinician requests MRI of the lumbar spine for further
+evaluation of the suspected underlying spinal/nerve-root condition.
+
+COVERAGE INFORMATION — DEMO ONLY
+--------------------------------
+Coverage status: ACTIVE (synthetic)
+Procedure coverage: YES (synthetic)
+Prior authorization required: YES (synthetic)
+
+PROVIDER
+--------
+Specialty: Orthopedics / Spine Medicine
+Provider ID: SYN-PR-1023
+
+EXPECTED SYSTEM EXTRACTION
+--------------------------
+The AI system should extract:
+- Patient age
+- Gender
+- Diagnosis/clinical indication
+- Symptoms
+- Symptom severity
+- Symptom duration
+- Previous treatment
+- Treatment duration
+- Treatment response
+- Requested procedure
+- Procedure code
+- Urgency
+- Physician order
+- Supporting evidence
+- Coverage status
+- Procedure coverage
+- Prior authorization requirement
+
+The extracted information should then be checked against the applicable documented
+CMS MRI rules and passed to the trained ML model.
+
+EXPECTED DECISION FORMAT
+------------------------
+The system should return one of:
+APPROVED
+REJECTED
+HUMAN_REVIEW
+
+The final decision must be based on the applicable rules and the trained model.
+Do not invent missing clinical information.
+This is a synthetic demonstration document and must not be used for real clinical or insurance decisions.

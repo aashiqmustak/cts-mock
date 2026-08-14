@@ -1,0 +1,15 @@
+# Ignore large dataset files
+datasets/*.zip
+datasets/*.csv
+datasets/*.json
+datasets/**/*.ssp
+datasets/*.ssp
+datasets/extracted_direct/
+datasets/extracted_test/
+
+# Ignore machine learning models
+models/*.pkl
+
+# Ignore python cache files
+**/__pycache__/
+*.pyc

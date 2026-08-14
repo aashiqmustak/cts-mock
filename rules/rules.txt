@@ -1,0 +1,370 @@
+HEALTHCARE PRIOR AUTHORIZATION
+DOCUMENTED RULES — MULTI-SERVICE STARTER SET
+
+IMPORTANT
+There is no single PDF containing the rules for all medical services. CMS coverage rules are distributed across National Coverage Determinations (NCDs), Local Coverage Determinations (LCDs), and Coverage/Billing Articles.
+
+This document is a starter rulebook for a prototype Prior Authorization Rules Engine. The rules are Medicare/CMS-specific, and some LCDs are jurisdiction-specific. They must not be treated as universal private-insurer rules or clinical advice.
+
+==================================================
+1. ROLE OF THE THREE DATA SOURCES
+==================================================
+
+CMS Provider Utilization Data
+- Provider, service, procedure and utilization features.
+- Useful for realistic provider/procedure patterns.
+
+MEPS
+- Healthcare utilization, expenditure, visits, medicines and source-of-payment variables.
+- Useful as contextual features.
+
+FDA / DailyMed
+- Official drug-label information such as indications, dosage, warnings and contraindications.
+- Mainly useful when the request involves medication.
+
+CMS NCD / LCD Policy Documents
+- Actual source for MRI and other medical-service coverage/medical-necessity and documentation rules.
+- These are separate from the CMS provider utilization dataset.
+
+==================================================
+2. MRI
+==================================================
+
+Policy source:
+- CMS MRI NCD/NCA
+- CMS LCD L34220 — Lumbar MRI
+- CMS LCD L34425 — Magnetic Resonance Imaging of the Head and Neck
+
+MRI-01 — Covered indication / medical necessity
+Rule:
+The requested MRI must have a covered indication and be reasonable and necessary for the specific patient under the applicable CMS policy.
+Extract:
+Diagnosis, clinical indication, reason for MRI.
+
+MRI-02 — Supporting medical record
+Rule:
+Clinical documentation supporting the condition and treatment must be maintained and available for review when required.
+Extract:
+Doctor/clinical note and relevant treatment history.
+
+MRI-03 — Diagnosis support
+Rule:
+The medical record should support the diagnosis/ICD-10-CM code reported for the MRI service.
+Extract:
+Diagnosis, ICD-10-CM code and clinical rationale.
+
+MRI-04 — Physician order
+Rule:
+For the cited Lumbar MRI LCD, an attending/treating physician order is required for each MRI test.
+Extract:
+Signed and dated physician order.
+
+MRI-05 — Clinical rationale
+Rule:
+An imaging abnormality by itself is not enough to establish necessity; the record should contain additional clinical rationale.
+Extract:
+Symptoms, findings, history and reason for imaging.
+
+MRI-06 — Lumbar MRI documentation
+Rule:
+For the cited Lumbar MRI policy, documentation should clearly support why the MRI is necessary and reasonable.
+Extract:
+Clinical rationale and relevant findings.
+
+MRI-07 — Head/neck MRI documentation
+Rule:
+For the cited Head and Neck MRI policy, documentation supporting medical necessity must be legible, maintained in the medical record and available upon request.
+Extract:
+Legible medical record and supporting documentation.
+
+MRI-08 — Additional same-day imaging
+Rule:
+For the cited Head and Neck MRI policy, when MRI and CT/myelography are performed for the same condition on the same day, documentation should support the necessity for the additional evaluation.
+Extract:
+Explanation for additional same-day imaging.
+
+MRI-09 — Patient-specific MRI considerations
+Rule:
+Check patient-specific device/contraindication circumstances against the applicable current MRI policy. Do not use a blanket rule without checking the policy.
+Extract:
+Implanted device information and relevant documentation.
+
+MRI-10 — Human review for ambiguity
+Rule:
+If required information is missing, conflicting or ambiguous, route the case to human review instead of inventing clinical facts.
+Extract:
+Missing/ambiguous information flag.
+
+==================================================
+3. CT / CARDIAC CT / CCTA
+==================================================
+
+Policy source:
+- CMS NCD §220.1
+- CMS CCTA LCD/Articles
+
+CT-01 — Physician order
+Rule:
+Tests must be ordered by the physician or other qualified practitioner treating the beneficiary in the applicable policy.
+
+CT-02 — Medical necessity
+Rule:
+The record must support the medical necessity of the diagnostic test.
+
+CT-03 — Clinical evidence
+Rule:
+Relevant history, physical examination and pertinent test/procedure results should support the request.
+
+CT-04 — Diagnosis/coding
+Rule:
+ICD-10-CM codes should reflect the patient's condition and reason for the service.
+
+CT-05 — Report/documentation
+Rule:
+A formal written report and relevant imaging/reconstruction documentation should be maintained for the cited CCT/CCTA policy.
+
+==================================================
+4. PET SCAN
+==================================================
+
+Policy source:
+- CMS PET Scan coverage/Billing Article A59318
+
+PET-01 — Medical necessity
+Rule:
+The record must fully support medical necessity under the applicable policy.
+
+PET-02 — Clinical history
+Rule:
+Relevant medical history and physical examination should be documented.
+
+PET-03 — Supporting tests
+Rule:
+Pertinent diagnostic test/procedure and imaging results should be available.
+
+PET-04 — Clinical rationale
+Rule:
+The record should explain why PET is needed and, where applicable, why PET is preferred over standard imaging.
+
+PET-05 — Formal report
+Rule:
+A formal written report identifying the patient, reason for the test, interpretation and relevant images should be maintained.
+
+==================================================
+5. ECHOCARDIOGRAPHY
+==================================================
+
+Policy source:
+- CMS LCD L37379
+- CMS LCD L34338
+
+ECHO-01 — Medical necessity
+Rule:
+The record must fully support medical necessity under the applicable echocardiography policy.
+
+ECHO-02 — Clinical indication
+Rule:
+The requested echo should match an indication covered by the applicable policy.
+
+ECHO-03 — Ordering
+Rule:
+Diagnostic tests must be ordered by the treating physician who uses the result for management of the specific medical problem.
+
+ECHO-04 — Clinical evidence
+Rule:
+Relevant history, physical examination and pertinent diagnostic test results should support the service.
+
+ECHO-05 — Formal report
+Rule:
+A formal written report with interpretation and appropriate measurements/image documentation should be maintained.
+
+==================================================
+6. SLEEP STUDY / POLYSOMNOGRAPHY
+==================================================
+
+Policy source:
+- CMS LCD L36839/L36861
+- CMS NCD §240.4.1
+
+SLEEP-01 — Medical evidence
+Rule:
+Documentation must support the need for diagnostic testing, such as signs, symptoms, complaints, examination or laboratory evidence.
+
+SLEEP-02 — Order/referral
+Rule:
+The sleep clinic should maintain the attending physician's order/referral.
+
+SLEEP-03 — Covered condition
+Rule:
+Diagnostic testing is covered only when the applicable medical-condition criteria are met.
+
+SLEEP-04 — Duplicate testing
+Rule:
+Duplicative testing is not reasonable and necessary when prior results remain pertinent.
+
+SLEEP-05 — Home sleep test
+Rule:
+The cited policy requires a comprehensive sleep evaluation and high pretest probability of moderate-to-severe obstructive sleep apnea for HST; device/training documentation requirements also apply.
+
+==================================================
+7. OUTPATIENT PHYSICAL THERAPY
+==================================================
+
+Policy source:
+- CMS LCD L34428
+- CMS therapy guidance
+
+PT-01 — Medical necessity
+Rule:
+Documentation must support that therapy is medically necessary and that covered services were performed.
+
+PT-02 — Dates/services
+Rule:
+Records should show what service was performed and on which dates.
+
+PT-03 — Evaluation and plan of care
+Rule:
+Required documentation includes evaluation and plan of care plus pertinent patient characteristics.
+
+PT-04 — Clinical history
+Rule:
+History/physical examination and response or changes from previously administered skilled services should be documented.
+
+PT-05 — Skilled-service rationale
+Rule:
+A detailed rationale should explain why skilled services are needed in light of the patient's overall condition.
+
+==================================================
+8. COLONOSCOPY
+==================================================
+
+Policy source:
+- CMS Diagnostic Colonoscopy LCDs/Articles
+
+COLON-01 — Medical necessity
+Rule:
+Ordering/referring physician documentation must indicate the medical necessity of the colonoscopy.
+
+COLON-02 — Diagnosis
+Rule:
+The medical record should support the ICD-10-CM diagnosis reported.
+
+COLON-03 — Order
+Rule:
+Where applicable, the ordering/referring physician's order should be maintained.
+
+COLON-04 — Procedure report
+Rule:
+The colonoscopy report should be maintained; applicable policies require details such as extent/depth and abnormal findings.
+
+COLON-05 — Pathology
+Rule:
+When applicable, associated pathology reports should be maintained in the medical record.
+
+==================================================
+9. GENERAL DIAGNOSTIC-SERVICE RULES
+==================================================
+
+GENERAL-01 — Reasonable and necessary
+Rule:
+Medicare coverage generally requires services to be reasonable and necessary for diagnosis or treatment of illness/injury under the applicable benefit and policy.
+
+GENERAL-02 — Documentation
+Rule:
+Documentation must support the service and be available for review when requested.
+
+GENERAL-03 — Coding
+Rule:
+Diagnosis/procedure coding should accurately describe the patient's condition and service.
+
+GENERAL-04 — Human review
+Rule:
+Ambiguous, incomplete or conflicting cases should be routed to qualified human review.
+
+GENERAL-05 — Policy scope
+Rule:
+Always apply the exact current NCD/LCD/Article and jurisdiction. Do not assume a rule applies to every payer.
+
+==================================================
+10. HOW TO USE THESE RULES IN YOUR AI SYSTEM
+==================================================
+
+Step 1:
+Identify the requested service: MRI, CT, PET, Echocardiography, Sleep Study, Physical Therapy, Colonoscopy, etc.
+
+Step 2:
+Retrieve the applicable current CMS policy for that service and jurisdiction.
+
+Step 3:
+Upload medical report(s) and use OCR/PDF extraction if needed.
+
+Step 4:
+Extract only required fields:
+- Diagnosis
+- Symptoms
+- Clinical findings
+- Previous treatment
+- Physician order/referral
+- Supporting tests
+- Service-specific documents
+
+Step 5:
+Evaluate the documented rules and record each rule as:
+- SATISFIED
+- NOT_SATISFIED
+- UNKNOWN
+
+Step 6:
+If required information is missing or conflicting, use HUMAN_REVIEW rather than guessing.
+
+Step 7:
+Pass validated structured features to the ML model.
+
+Step 8:
+Combine ML prediction with mandatory policy rules. The ML model must not silently override a mandatory policy criterion.
+
+Step 9:
+Store the rule source, extracted evidence, ML version, prediction and final recommendation in the audit log.
+
+==================================================
+11. RECOMMENDED RULE JSON STRUCTURE
+==================================================
+
+Example:
+
+{
+  "rule_id": "MRI-001",
+  "service": "MRI",
+  "rule_type": "documentation",
+  "criterion": "Medical record supports medical necessity",
+  "source": "CMS LCD/NCD",
+  "source_id": "policy identifier",
+  "status": "SATISFIED | NOT_SATISFIED | UNKNOWN",
+  "evidence": "Extracted evidence from uploaded report"
+}
+
+==================================================
+12. OFFICIAL SOURCE DOCUMENT TYPES
+==================================================
+
+- CMS Medicare Coverage Database (MCD) — Search and policy documents.
+- CMS MCD Downloads — current LCDs, Articles, NCD datasets and data dictionaries.
+- CMS LCD L34220 — Lumbar MRI.
+- CMS LCD L34425 — Magnetic Resonance Imaging of the Head and Neck.
+- CMS NCD / MRI national coverage material.
+- CMS LCD L37379 — Echocardiography.
+- CMS LCD L36839/L36861 — Polysomnography and Other Sleep Studies.
+- CMS LCD L34428 — Outpatient Physical Therapy.
+- CMS PET Billing and Coding Article A59318.
+- CMS Cardiac CT/CCTA coverage and billing documents.
+- CMS Diagnostic Colonoscopy LCDs/Articles.
+
+==================================================
+FINAL LIMITATION
+==================================================
+
+This is a prototype starter ruleset, not an exhaustive database of all healthcare services.
+
+CMS NCDs are national Medicare policies. LCDs can be jurisdiction-specific. Policies change over time. For a real implementation, always retrieve and version the current applicable policy.
+
+The ML model should support qualified human review and should not be presented as independently making clinical decisions.
