@@ -50,6 +50,7 @@ def verify_api_key():
 # OCR library imports (optional/lazy import to avoid crash if not installed)
 try:
     from PIL import Image
+    # pyrefly: ignore [missing-import]
     import pytesseract
     # Configure path to tesseract.exe on Windows if it exists
     tesseract_default_path = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
