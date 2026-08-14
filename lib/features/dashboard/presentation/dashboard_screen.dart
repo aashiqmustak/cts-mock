@@ -915,7 +915,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     }
     final insurancePlanLabel = dbPatient != null 
         ? '${dbPatient.payer} ${dbPatient.insurancePlan} · Member ID: ${dbPatient.insuranceId}'
-        : 'UnitedHealthcare PPO Plus · Member ID: UHC-998877';
+        : 'UnitedHealthcare PPO Plus · Member ID: null';
 
     final patientInitials = patientName.isNotEmpty
         ? patientName.split(' ').map((e) => e[0]).take(2).join().toUpperCase()

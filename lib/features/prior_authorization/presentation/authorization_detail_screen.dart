@@ -19,9 +19,9 @@ class AuthorizationDetailScreen extends ConsumerWidget {
     final auths = MockDataRepository.instance.authorizations;
     final auth  = auths.firstWhere((a) => a.id == id,
         orElse: () => auths.first);
-    final aiDecision = auth.aiDecisionId != null
-        ? MockDataRepository.instance.aiDecisions
-            .firstWhere((d) => d.id == auth.aiDecisionId, orElse: () => MockDataRepository.instance.aiDecisions.first)
+    final aiDecision = auth.aiDecisionId != null &&
+            MockDataRepository.instance.aiDecisions.any((d) => d.id == auth.aiDecisionId)
+        ? MockDataRepository.instance.aiDecisions.firstWhere((d) => d.id == auth.aiDecisionId)
         : null;
 
     return SingleChildScrollView(

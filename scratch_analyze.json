@@ -1,0 +1,503 @@
+{
+  "request_id": "dc405f4b-15ac-4dae-bebd-fc017d87fbd7",
+  "document_type": "Doctor Report / Note",
+  "extracted_info": {
+    "age": 45,
+    "gender": "Female",
+    "chronic_condition": "Hypertension",
+    "diagnosis": "Essential Hypertension",
+    "diagnosis_code": "I10",
+    "symptom_severity": "Moderate",
+    "symptom_duration_days": 30,
+    "previous_treatment": "None",
+    "previous_treatment_duration_weeks": 0,
+    "treatment_response": "N/A",
+    "supporting_evidence_available": "YES",
+    "request_type": "Procedure",
+    "procedure_name": "Specialist Consultation",
+    "procedure_code": 99214,
+    "drug_name": "N/A",
+    "dosage": "N/A",
+    "urgency": "Routine",
+    "insurance_active": "YES",
+    "procedure_or_drug_covered": "YES",
+    "prior_auth_required": "YES",
+    "network_status": "In-Network",
+    "coverage_limit_available": "YES",
+    "provider_specialty": "Cardiology",
+    "provider_utilization_level": "Medium",
+    "medical_necessity_score": 75,
+    "policy_criteria_met": "YES",
+    "alternative_treatment_tried": "NO",
+    "alternative_treatment_available": "YES",
+    "documentation_complete": "YES",
+    "duplicate_request": "NO",
+    "previous_authorization_status": "None",
+    "estimated_cost": 250.0,
+    "emergency_flag": "NO",
+    "service_type": "MRI"
+  },
+  "rule_evaluations": [
+    {
+      "rule_id": "MRI-01",
+      "service": "MRI",
+      "rule_type": "necessity",
+      "criterion": "Covered indication / medical necessity",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NEEDS_REVIEW",
+      "evidence": "Clinical information does not clearly establish all applicable conservative care criteria (previous treatment tried is None/NO)."
+    },
+    {
+      "rule_id": "MRI-02",
+      "service": "MRI",
+      "rule_type": "documentation",
+      "criterion": "Supporting medical record",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "SATISFIED",
+      "evidence": "Documentation is fully complete."
+    },
+    {
+      "rule_id": "MRI-03",
+      "service": "MRI",
+      "rule_type": "necessity",
+      "criterion": "Diagnosis support",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "SATISFIED",
+      "evidence": "Diagnosis Essential Hypertension matched with ICD code I10."
+    },
+    {
+      "rule_id": "MRI-04",
+      "service": "MRI",
+      "rule_type": "documentation",
+      "criterion": "Physician order",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "SATISFIED",
+      "evidence": "Physician order verified in medical record."
+    },
+    {
+      "rule_id": "MRI-05",
+      "service": "MRI",
+      "rule_type": "necessity",
+      "criterion": "Clinical rationale",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NEEDS_REVIEW",
+      "evidence": "Clinical rationale does not document completion of mandatory conservative care (minimum 6 weeks)."
+    },
+    {
+      "rule_id": "MRI-06",
+      "service": "MRI",
+      "rule_type": "documentation",
+      "criterion": "Lumbar MRI documentation",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "MRI-07",
+      "service": "MRI",
+      "rule_type": "documentation",
+      "criterion": "Head/neck MRI documentation",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "MRI-08",
+      "service": "MRI",
+      "rule_type": "necessity",
+      "criterion": "Additional same-day imaging",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "MRI-09",
+      "service": "MRI",
+      "rule_type": "necessity",
+      "criterion": "Patient-specific MRI considerations",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "SATISFIED",
+      "evidence": "General criteria verified."
+    },
+    {
+      "rule_id": "MRI-10",
+      "service": "MRI",
+      "rule_type": "necessity",
+      "criterion": "Human review for ambiguity",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "UNKNOWN",
+      "evidence": "Requires manual case confirmation due to high utilization/untried alternatives."
+    },
+    {
+      "rule_id": "CT-01",
+      "service": "CT",
+      "rule_type": "documentation",
+      "criterion": "Physician order",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "CT-02",
+      "service": "CT",
+      "rule_type": "necessity",
+      "criterion": "Medical necessity",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "CT-03",
+      "service": "CT",
+      "rule_type": "necessity",
+      "criterion": "Clinical evidence",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "CT-04",
+      "service": "CT",
+      "rule_type": "necessity",
+      "criterion": "Diagnosis/coding",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "CT-05",
+      "service": "CT",
+      "rule_type": "documentation",
+      "criterion": "Report/documentation",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "PET-01",
+      "service": "PET",
+      "rule_type": "necessity",
+      "criterion": "Medical necessity",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "PET-02",
+      "service": "PET",
+      "rule_type": "necessity",
+      "criterion": "Clinical history",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "PET-03",
+      "service": "PET",
+      "rule_type": "necessity",
+      "criterion": "Supporting tests",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "PET-04",
+      "service": "PET",
+      "rule_type": "necessity",
+      "criterion": "Clinical rationale",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "PET-05",
+      "service": "PET",
+      "rule_type": "documentation",
+      "criterion": "Formal report",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "ECHO-01",
+      "service": "ECHO",
+      "rule_type": "necessity",
+      "criterion": "Medical necessity",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "ECHO-02",
+      "service": "ECHO",
+      "rule_type": "necessity",
+      "criterion": "Clinical indication",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "ECHO-03",
+      "service": "ECHO",
+      "rule_type": "documentation",
+      "criterion": "Ordering",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "ECHO-04",
+      "service": "ECHO",
+      "rule_type": "necessity",
+      "criterion": "Clinical evidence",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "ECHO-05",
+      "service": "ECHO",
+      "rule_type": "documentation",
+      "criterion": "Formal report",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "SLEEP-01",
+      "service": "SLEEP",
+      "rule_type": "necessity",
+      "criterion": "Medical evidence",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "SLEEP-02",
+      "service": "SLEEP",
+      "rule_type": "documentation",
+      "criterion": "Order/referral",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "SLEEP-03",
+      "service": "SLEEP",
+      "rule_type": "necessity",
+      "criterion": "Covered condition",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "SLEEP-04",
+      "service": "SLEEP",
+      "rule_type": "necessity",
+      "criterion": "Duplicate testing",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "SLEEP-05",
+      "service": "SLEEP",
+      "rule_type": "necessity",
+      "criterion": "Home sleep test",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "PT-01",
+      "service": "PT",
+      "rule_type": "necessity",
+      "criterion": "Medical necessity",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "PT-02",
+      "service": "PT",
+      "rule_type": "necessity",
+      "criterion": "Dates/services",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "PT-03",
+      "service": "PT",
+      "rule_type": "necessity",
+      "criterion": "Evaluation and plan of care",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "PT-04",
+      "service": "PT",
+      "rule_type": "necessity",
+      "criterion": "Clinical history",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "PT-05",
+      "service": "PT",
+      "rule_type": "necessity",
+      "criterion": "Skilled-service rationale",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "COLON-01",
+      "service": "COLON",
+      "rule_type": "necessity",
+      "criterion": "Medical necessity",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "COLON-02",
+      "service": "COLON",
+      "rule_type": "necessity",
+      "criterion": "Diagnosis",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "COLON-03",
+      "service": "COLON",
+      "rule_type": "documentation",
+      "criterion": "Order",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "COLON-04",
+      "service": "COLON",
+      "rule_type": "documentation",
+      "criterion": "Procedure report",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "COLON-05",
+      "service": "COLON",
+      "rule_type": "necessity",
+      "criterion": "Pathology",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NOT_APPLICABLE",
+      "evidence": "Rule is not applicable to the requested service sub-type."
+    },
+    {
+      "rule_id": "GENERAL-01",
+      "service": "GENERAL",
+      "rule_type": "necessity",
+      "criterion": "Reasonable and necessary",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "NEEDS_REVIEW",
+      "evidence": "Clinical information does not clearly establish all applicable conservative care criteria (previous treatment tried is None/NO)."
+    },
+    {
+      "rule_id": "GENERAL-02",
+      "service": "GENERAL",
+      "rule_type": "documentation",
+      "criterion": "Documentation",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "SATISFIED",
+      "evidence": "Documentation is fully complete."
+    },
+    {
+      "rule_id": "GENERAL-03",
+      "service": "GENERAL",
+      "rule_type": "necessity",
+      "criterion": "Coding",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "SATISFIED",
+      "evidence": "Diagnosis Essential Hypertension matched with ICD code I10."
+    },
+    {
+      "rule_id": "GENERAL-04",
+      "service": "GENERAL",
+      "rule_type": "necessity",
+      "criterion": "Human review",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "UNKNOWN",
+      "evidence": "Requires manual case confirmation due to high utilization/untried alternatives."
+    },
+    {
+      "rule_id": "GENERAL-05",
+      "service": "GENERAL",
+      "rule_type": "necessity",
+      "criterion": "Policy scope",
+      "source": "CMS LCD/NCD guidelines",
+      "source_id": "CMS Policy Guidelines",
+      "status": "SATISFIED",
+      "evidence": "General criteria verified."
+    }
+  ],
+  "decision": "HUMAN_REVIEW",
+  "ml_decision": "HUMAN_REVIEW",
+  "ml_confidence": 0.9497,
+  "rules_summary": {
+    "satisfied": 7,
+    "not_satisfied": 0,
+    "unknown": 5,
+    "not_applicable": 33
+  },
+  "reason": "Certain mandatory clinical policy criteria need verification or are uncertain.",
+  "processing_time": 0.02
+}

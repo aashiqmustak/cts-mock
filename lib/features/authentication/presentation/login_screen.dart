@@ -29,7 +29,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
   bool _isLoading = false;
   bool _rememberMe = true;
   String? _errorMsg;
-  int _selectedDemoRole = 0;
   late AnimationController _bgAnimationCtrl;
 
   @override
@@ -39,8 +38,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
       vsync: this,
       duration: const Duration(seconds: 20),
     )..repeat(reverse: true);
-
-    _fillDemo(0);
   }
 
   @override
@@ -73,17 +70,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     }
   }
 
-  void _fillDemo(int index) {
-    if (index >= 0 && index < AppConstants.demoCredentials.length) {
-      final creds = AppConstants.demoCredentials[index];
-      _emailCtrl.text = creds['email']!;
-      _passCtrl.text = creds['password']!;
-      setState(() {
-        _selectedDemoRole = index;
-        _errorMsg = null;
-      });
-    }
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -165,11 +152,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                                       isLoading: _isLoading,
                                       rememberMe: _rememberMe,
                                       errorMsg: _errorMsg,
-                                      selectedDemo: _selectedDemoRole,
                                       onTogglePass: () => setState(() => _obscurePass = !_obscurePass),
                                       onToggleRemember: (val) => setState(() => _rememberMe = val ?? false),
                                       onSignIn: _signIn,
-                                      onFillDemo: _fillDemo,
                                       onForgotPass: () => context.go(RouteNames.forgotPassword),
                                       onRegister: () => context.go(RouteNames.register),
                                       isMobile: isMobile,
@@ -274,11 +259,9 @@ class _LoginCard extends StatelessWidget {
   final bool isLoading;
   final bool rememberMe;
   final String? errorMsg;
-  final int selectedDemo;
   final VoidCallback onTogglePass;
   final Function(bool?) onToggleRemember;
   final VoidCallback onSignIn;
-  final Function(int) onFillDemo;
   final VoidCallback onForgotPass;
   final VoidCallback onRegister;
   final bool isMobile;
@@ -292,11 +275,9 @@ class _LoginCard extends StatelessWidget {
     required this.isLoading,
     required this.rememberMe,
     required this.errorMsg,
-    required this.selectedDemo,
     required this.onTogglePass,
     required this.onToggleRemember,
     required this.onSignIn,
-    required this.onFillDemo,
     required this.onForgotPass,
     required this.onRegister,
     required this.isMobile,
@@ -407,16 +388,7 @@ class _LoginCard extends StatelessWidget {
             ),
           ).animate(delay: 50.ms).fadeIn(),
 
-          SizedBox(height: gap),
 
-          // Quick Demo Role Pills Selector
-          _QuickDemoRoleSelector(
-            selectedIndex: selectedDemo,
-            onSelect: onFillDemo,
-            compact: !isTall,
-          ),
-
-          SizedBox(height: gap),
 
           // Form
           Form(
@@ -733,108 +705,4 @@ class _LoginCard extends StatelessWidget {
   }
 }
 
-// ─── Quick Demo Role Selector Pills ──────────────────────────────────────────
-class _QuickDemoRoleSelector extends StatelessWidget {
-  final int selectedIndex;
-  final Function(int) onSelect;
-  final bool compact;
 
-  const _QuickDemoRoleSelector({
-    required this.selectedIndex,
-    required this.onSelect,
-    this.compact = false,
-  });
-
-  static const _roles = [
-    ('Admin', UserRole.administrator, PhosphorIconsRegular.crown),
-    ('Doctor', UserRole.doctor, PhosphorIconsRegular.stethoscope),
-    ('Reviewer', UserRole.insuranceReviewer, PhosphorIconsRegular.shieldCheck),
-    ('Staff', UserRole.hospitalStaff, PhosphorIconsRegular.hospital),
-    ('Patient', UserRole.patient, PhosphorIconsRegular.user),
-    ('Hosp Admin', UserRole.adminHospital, PhosphorIconsRegular.briefcase),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(compact ? 6 : 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Row(
-              children: [
-                Icon(PhosphorIconsRegular.lightning, size: compact ? 11 : 12, color: const Color(0xFFD97706)),
-                const SizedBox(width: 4),
-                Text(
-                  'Quick Demo — Select role to auto-fill',
-                  style: TextStyle(
-                    color: const Color(0xFF475569),
-                    fontSize: compact ? 9.5 : 10.5,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: compact ? 4 : 6),
-          Wrap(
-            spacing: compact ? 4 : 5,
-            runSpacing: compact ? 4 : 5,
-            children: _roles.asMap().entries.map((e) {
-              final i = e.key;
-              final (label, role, icon) = e.value;
-              final isSelected = i == selectedIndex;
-              return InkWell(
-                onTap: () => onSelect(i),
-                borderRadius: BorderRadius.circular(16),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: compact ? 6 : 8,
-                    vertical: compact ? 3 : 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFFEFF6FF) : Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isSelected ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0),
-                      width: isSelected ? 1.5 : 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        icon,
-                        size: compact ? 10 : 11,
-                        color: isSelected ? const Color(0xFF2563EB) : const Color(0xFF64748B),
-                      ),
-                      const SizedBox(width: 3),
-                      Text(
-                        label,
-                        style: TextStyle(
-                          color: isSelected ? const Color(0xFF1E40AF) : const Color(0xFF334155),
-                          fontSize: compact ? 9.5 : 10,
-                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-}

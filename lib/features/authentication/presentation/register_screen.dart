@@ -29,6 +29,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> with SingleTick
   final _facilityCtrl = TextEditingController();
   final _specializationCtrl = TextEditingController();
   final _licenseCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
 
   UserRole _selectedRole = UserRole.patient;
   bool _obscurePass = true;
@@ -55,6 +56,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> with SingleTick
     _facilityCtrl.dispose();
     _specializationCtrl.dispose();
     _licenseCtrl.dispose();
+    _phoneCtrl.dispose();
     _bgAnimationCtrl.dispose();
     super.dispose();
   }
@@ -74,6 +76,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> with SingleTick
           facility: _showFacilityField ? _facilityCtrl.text : null,
           specialization: _showDoctorFields ? _specializationCtrl.text : null,
           licenseNumber: _showDoctorFields ? _licenseCtrl.text : null,
+          phone: _phoneCtrl.text.trim().isNotEmpty ? _phoneCtrl.text.trim() : null,
         );
 
     if (!mounted) return;
@@ -174,6 +177,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> with SingleTick
                                       facilityCtrl: _facilityCtrl,
                                       specializationCtrl: _specializationCtrl,
                                       licenseCtrl: _licenseCtrl,
+                                      phoneCtrl: _phoneCtrl,
                                       selectedRole: _selectedRole,
                                       showFacilityField: _showFacilityField,
                                       showDoctorFields: _showDoctorFields,
@@ -289,6 +293,7 @@ class _RegisterCard extends StatelessWidget {
   final TextEditingController facilityCtrl;
   final TextEditingController specializationCtrl;
   final TextEditingController licenseCtrl;
+  final TextEditingController phoneCtrl;
   final UserRole selectedRole;
   final bool showFacilityField;
   final bool showDoctorFields;
@@ -313,6 +318,7 @@ class _RegisterCard extends StatelessWidget {
     required this.facilityCtrl,
     required this.specializationCtrl,
     required this.licenseCtrl,
+    required this.phoneCtrl,
     required this.selectedRole,
     required this.showFacilityField,
     required this.showDoctorFields,
@@ -337,6 +343,28 @@ class _RegisterCard extends StatelessWidget {
     final isMedium = vh >= 720 && vh < 850;
     final vw = MediaQuery.of(context).size.width;
     final cardWidth = isMobile ? math.min(480.0, vw - 24) : math.min(740.0, (vw - 60) * 0.48);
+
+    String nameHint;
+    switch (selectedRole) {
+      case UserRole.doctor:
+        nameHint = 'e.g. Dr. Hemachandran';
+        break;
+      case UserRole.patient:
+        nameHint = 'e.g. Susmitha';
+        break;
+      case UserRole.insuranceReviewer:
+        nameHint = 'e.g. Mohana';
+        break;
+      case UserRole.hospitalStaff:
+        nameHint = 'e.g. Amirtha';
+        break;
+      case UserRole.adminHospital:
+        nameHint = 'e.g. Aswitha';
+        break;
+      case UserRole.administrator:
+        nameHint = 'e.g. Aashiq';
+        break;
+    }
 
     final cardPadding = EdgeInsets.only(
       left: isMobile ? 20.0 : (28.0 + (6.0 * tHeight)),
@@ -452,7 +480,7 @@ class _RegisterCard extends StatelessWidget {
 
                 SizedBox(height: fieldGap),
 
-                // Row 1: Full Name (50%) & Email Address (50%)
+                // Row 1: Full Name (50%) & Phone Number (50%)
                 Row(
                   children: [
                     Expanded(
@@ -467,7 +495,7 @@ class _RegisterCard extends StatelessWidget {
                               controller: nameCtrl,
                               style: _inputTextStyle(isTall),
                               decoration: _inputDecoration(
-                                hint: 'e.g. Dr. Sarah Jenkins',
+                                hint: nameHint,
                                 icon: PhosphorIconsRegular.user,
                                 isTall: isTall,
                               ),
@@ -478,6 +506,37 @@ class _RegisterCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Phone Number', style: _labelStyle(isTall)),
+                          const SizedBox(height: 2),
+                          SizedBox(
+                            height: inputHeight,
+                            child: TextFormField(
+                              controller: phoneCtrl,
+                              style: _inputTextStyle(isTall),
+                              keyboardType: TextInputType.phone,
+                              decoration: _inputDecoration(
+                                hint: 'e.g. +1 (555) 019-2834',
+                                icon: PhosphorIconsRegular.phone,
+                                isTall: isTall,
+                              ),
+                              validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                SizedBox(height: fieldGap),
+
+                // Row 2: Email Address & Facility Name OR Email Address & Password
+                Row(
+                  children: [
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -505,14 +564,7 @@ class _RegisterCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                  ],
-                ),
-
-                SizedBox(height: fieldGap),
-
-                // Row 2: Facility Name & Password OR Password & Confirm Password
-                Row(
-                  children: [
+                    const SizedBox(width: 10),
                     if (showFacilityField) ...[
                       Expanded(
                         child: Column(
@@ -536,51 +588,97 @@ class _RegisterCard extends StatelessWidget {
                           ],
                         ),
                       ),
+                    ] else ...[
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Password', style: _labelStyle(isTall)),
+                            const SizedBox(height: 2),
+                            SizedBox(
+                              height: inputHeight,
+                              child: TextFormField(
+                                controller: passCtrl,
+                                style: _inputTextStyle(isTall),
+                                obscureText: obscurePass,
+                                decoration: _inputDecoration(
+                                  hint: 'Min 6 chars',
+                                  icon: PhosphorIconsRegular.lockSimple,
+                                  isTall: isTall,
+                                  suffix: IconButton(
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    icon: Icon(
+                                      obscurePass ? PhosphorIconsRegular.eye : PhosphorIconsRegular.eyeSlash,
+                                      size: 14,
+                                      color: const Color(0xFF64748B),
+                                    ),
+                                    onPressed: onTogglePass,
+                                  ),
+                                ),
+                                validator: (v) {
+                                  if (v == null || v.isEmpty) return 'Required';
+                                  if (v.length < 6) return 'Min 6 chars';
+                                  return null;
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+
+                SizedBox(height: fieldGap),
+
+                // Row 3: Password & Confirm Password (if facility shown) OR Confirm Password & Empty (if facility not shown)
+                Row(
+                  children: [
+                    if (showFacilityField) ...[
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Password', style: _labelStyle(isTall)),
+                            const SizedBox(height: 2),
+                            SizedBox(
+                              height: inputHeight,
+                              child: TextFormField(
+                                controller: passCtrl,
+                                style: _inputTextStyle(isTall),
+                                obscureText: obscurePass,
+                                decoration: _inputDecoration(
+                                  hint: 'Min 6 chars',
+                                  icon: PhosphorIconsRegular.lockSimple,
+                                  isTall: isTall,
+                                  suffix: IconButton(
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    icon: Icon(
+                                      obscurePass ? PhosphorIconsRegular.eye : PhosphorIconsRegular.eyeSlash,
+                                      size: 14,
+                                      color: const Color(0xFF64748B),
+                                    ),
+                                    onPressed: onTogglePass,
+                                  ),
+                                ),
+                                validator: (v) {
+                                  if (v == null || v.isEmpty) return 'Required';
+                                  if (v.length < 6) return 'Min 6 chars';
+                                  return null;
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                       const SizedBox(width: 10),
                     ],
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Password', style: _labelStyle(isTall)),
-                          const SizedBox(height: 2),
-                          SizedBox(
-                            height: inputHeight,
-                            child: TextFormField(
-                              controller: passCtrl,
-                              style: _inputTextStyle(isTall),
-                              obscureText: obscurePass,
-                              decoration: _inputDecoration(
-                                hint: 'Min 6 chars',
-                                icon: PhosphorIconsRegular.lockSimple,
-                                isTall: isTall,
-                                suffix: IconButton(
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(),
-                                  icon: Icon(
-                                    obscurePass ? PhosphorIconsRegular.eye : PhosphorIconsRegular.eyeSlash,
-                                    size: 14,
-                                    color: const Color(0xFF64748B),
-                                  ),
-                                  onPressed: onTogglePass,
-                                ),
-                              ),
-                              validator: (v) {
-                                if (v == null || v.isEmpty) return 'Required';
-                                if (v.length < 6) return 'Min 6 chars';
-                                return null;
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  if (!showFacilityField) ...[
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
                           Text('Confirm Password', style: _labelStyle(isTall)),
                           const SizedBox(height: 2),
                           SizedBox(
@@ -614,111 +712,66 @@ class _RegisterCard extends StatelessWidget {
                         ],
                       ),
                     ),
+                    if (!showFacilityField) ...[
+                      const SizedBox(width: 10),
+                      const Expanded(child: SizedBox.shrink()),
+                    ],
                   ],
+                ),
+
+                // Row 4 (Conditional Doctor Fields: Specialization & License)
+                if (showDoctorFields) ...[
+                  SizedBox(height: fieldGap),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Specialization', style: _labelStyle(isTall)),
+                            const SizedBox(height: 2),
+                            SizedBox(
+                              height: inputHeight,
+                              child: TextFormField(
+                                controller: specializationCtrl,
+                                style: _inputTextStyle(isTall),
+                                decoration: _inputDecoration(
+                                  hint: 'Cardiology, etc.',
+                                  icon: PhosphorIconsRegular.stethoscope,
+                                  isTall: isTall,
+                                ),
+                                validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('License / NPI', style: _labelStyle(isTall)),
+                            const SizedBox(height: 2),
+                            SizedBox(
+                              height: inputHeight,
+                              child: TextFormField(
+                                controller: licenseCtrl,
+                                style: _inputTextStyle(isTall),
+                                decoration: _inputDecoration(
+                                  hint: 'NPI-1234567890',
+                                  icon: PhosphorIconsRegular.identificationCard,
+                                  isTall: isTall,
+                                ),
+                                validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
-              ),
-
-              // Row 3 (Conditional Doctor Fields: Specialization & License)
-              if (showDoctorFields) ...[
-                SizedBox(height: fieldGap),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Specialization', style: _labelStyle(isTall)),
-                          const SizedBox(height: 2),
-                          SizedBox(
-                            height: inputHeight,
-                            child: TextFormField(
-                              controller: specializationCtrl,
-                              style: _inputTextStyle(isTall),
-                              decoration: _inputDecoration(
-                                hint: 'Cardiology, etc.',
-                                icon: PhosphorIconsRegular.stethoscope,
-                                isTall: isTall,
-                              ),
-                              validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('License / NPI', style: _labelStyle(isTall)),
-                          const SizedBox(height: 2),
-                          SizedBox(
-                            height: inputHeight,
-                            child: TextFormField(
-                              controller: licenseCtrl,
-                              style: _inputTextStyle(isTall),
-                              decoration: _inputDecoration(
-                                hint: 'NPI-1234567890',
-                                icon: PhosphorIconsRegular.identificationCard,
-                                isTall: isTall,
-                              ),
-                              validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-
-              // Row 4 (If Facility Field shown: Confirm Password)
-              if (showFacilityField) ...[
-                SizedBox(height: fieldGap),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Confirm Password', style: _labelStyle(isTall)),
-                          const SizedBox(height: 2),
-                          SizedBox(
-                            height: inputHeight,
-                            child: TextFormField(
-                              controller: confirmPassCtrl,
-                              style: _inputTextStyle(isTall),
-                              obscureText: obscureConfirmPass,
-                              decoration: _inputDecoration(
-                                hint: 'Re-enter password',
-                                icon: PhosphorIconsRegular.lockSimple,
-                                isTall: isTall,
-                                suffix: IconButton(
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(),
-                                  icon: Icon(
-                                    obscureConfirmPass ? PhosphorIconsRegular.eye : PhosphorIconsRegular.eyeSlash,
-                                    size: 14,
-                                    color: const Color(0xFF64748B),
-                                  ),
-                                  onPressed: onToggleConfirmPass,
-                                ),
-                              ),
-                              validator: (v) {
-                                if (v == null || v.isEmpty) return 'Required';
-                                if (v != passCtrl.text) return 'Mismatch';
-                                return null;
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    const Expanded(child: SizedBox.shrink()),
-                  ],
-                ),
-              ],
 
                 // Error Message Banner
                 if (errorMsg != null) ...[

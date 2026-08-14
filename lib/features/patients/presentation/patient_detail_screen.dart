@@ -1201,8 +1201,8 @@ class _AuthorizationHistoryCard extends StatelessWidget {
 
   void _showPatientExplanation(BuildContext context, AuthorizationRequest auth) {
     final decisions = MockDataRepository.instance.aiDecisions;
-    final decision = auth.aiDecisionId != null
-        ? decisions.firstWhere((d) => d.id == auth.aiDecisionId, orElse: () => decisions.first)
+    final decision = auth.aiDecisionId != null && decisions.any((d) => d.id == auth.aiDecisionId)
+        ? decisions.firstWhere((d) => d.id == auth.aiDecisionId)
         : null;
     final explanation = PatientPortalExplanation.generate(auth, decision);
 

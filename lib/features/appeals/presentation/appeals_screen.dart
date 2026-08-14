@@ -7,6 +7,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../models/models.dart';
 import '../../../repositories/data_repository.dart';
+import 'package:dio/dio.dart';
+import '../../../core/constants/app_constants.dart';
 
 class AppealsScreen extends ConsumerStatefulWidget {
   const AppealsScreen({super.key});
@@ -369,125 +371,187 @@ class _AppealsScreenState extends ConsumerState<AppealsScreen> {
                         ),
                         const SizedBox(width: 12),
                         ElevatedButton.icon(
-                          onPressed: () {
+                          onPressed: () async {
                             if (formKey.currentState!.validate() && selectedRequest != null) {
                               setDialogState(() {
                                 isAnalyzing = true;
                               });
 
-                              Future.delayed(const Duration(milliseconds: 2500), () {
-                                if (!dialogCtx.mounted) return;
-
-                                // 1. Add appeal case to repository
-                                final randomId = DateTime.now().millisecondsSinceEpoch.toString().substring(8);
-                                final appealNum = 'APL-2024-0${randomId}';
-                                
-                                final newAppeal = AppealCase(
-                                  id: 'appeal-$randomId',
-                                  appealNumber: appealNum,
-                                  authorizationId: selectedRequest!.id,
-                                  authNumber: selectedRequest!.authNumber,
-                                  patientName: selectedRequest!.patientName,
-                                  filedById: 'usr-006', // Mock Current Hospital Admin
-                                  filedByName: 'Sarah Jenkins',
-                                  status: AppealStatus.submitted,
-                                  filedAt: DateTime.now(),
-                                  groundsForAppeal: groundsController.text.trim(),
-                                  supportingEvidence: treatmentController.text.trim(),
-                                  aiSuccessProbability: 0.65 + (DateTime.now().millisecond % 30) / 100.0, // mock success probability 65-95%
-                                  aiProbabilityLow: 0.58,
-                                  aiProbabilityHigh: 0.96,
-                                  documentIds: mockDocuments,
-                                  draftAppealLetter: _generateMockAppealLetter(
-                                    selectedRequest!,
-                                    groundsController.text.trim(),
-                                    treatmentController.text.trim(),
-                                    mockDocuments,
-                                  ),
-                                );
-
-                                MockDataRepository.instance.appeals.insert(0, newAppeal);
-
-                                // 2. Update authorization status to underReview
-                                final idx = MockDataRepository.instance.authorizations
-                                    .indexWhere((a) => a.id == selectedRequest!.id);
-                                if (idx != -1) {
-                                  final req = MockDataRepository.instance.authorizations[idx];
-                                  MockDataRepository.instance.authorizations[idx] = AuthorizationRequest(
-                                    id: req.id,
-                                    authNumber: req.authNumber,
-                                    patientId: req.patientId,
-                                    patientName: req.patientName,
-                                    patientDob: req.patientDob,
-                                    patientInsuranceId: req.patientInsuranceId,
-                                    requestingDoctorId: req.requestingDoctorId,
-                                    requestingDoctorName: req.requestingDoctorName,
-                                    facilityName: req.facilityName,
-                                    facilityNpi: req.facilityNpi,
-                                    diagnosisCode: req.diagnosisCode,
-                                    diagnosisDescription: req.diagnosisDescription,
-                                    procedureCode: req.procedureCode,
-                                    procedureDescription: req.procedureDescription,
-                                    drugName: req.drugName,
-                                    drugNdc: req.drugNdc,
-                                    insurancePlanId: req.insurancePlanId,
-                                    insurancePlanName: req.insurancePlanName,
-                                    status: AuthorizationStatus.underReview,
-                                    priority: req.priority,
-                                    requestedAt: req.requestedAt,
-                                    reviewedAt: DateTime.now(),
-                                    decidedAt: req.decidedAt,
-                                    processingTimeMs: req.processingTimeMs,
-                                    reviewerNotes: 'Appeal submitted. Re-evaluating decision.',
-                                    rejectionReason: req.rejectionReason,
-                                    policyClauseCited: req.policyClauseCited,
-                                    documentIds: [...req.documentIds, ...mockDocuments],
-                                    aiDecisionId: req.aiDecisionId,
-                                    isUrgent: req.isUrgent,
-                                    slaStatus: req.slaStatus,
-                                    dataSource: req.dataSource,
-                                    cmsNpiNumber: req.cmsNpiNumber,
-                                    cmsSpecialty: req.cmsSpecialty,
-                                  );
+                              // 1. Gather feature values for ML inference
+                              int patientAge = 45;
+                              try {
+                                if (selectedRequest!.patientDob.isNotEmpty) {
+                                  final dob = DateTime.parse(selectedRequest!.patientDob);
+                                  patientAge = DateTime.now().year - dob.year;
                                 }
+                              } catch (_) {}
 
-                                // 3. Log Audit Trail
-                                final prevHash = MockDataRepository.instance.auditLogs.isNotEmpty 
-                                    ? MockDataRepository.instance.auditLogs.last.entryHash 
-                                    : 'f9e2d1c6b3a8';
-                                MockDataRepository.instance.auditLogs.add(
-                                  AuditLogEntry(
-                                    id: 'log-$randomId',
-                                    action: 'appeal.filed',
-                                    actorId: 'usr-006',
-                                    actorName: 'Sarah Jenkins',
-                                    actorRole: 'Hospital Admin',
-                                    resourceId: 'appeal-$randomId',
-                                    resourceType: 'AppealCase',
-                                    description: 'Appeal $appealNum filed for auth ${selectedRequest!.authNumber} (Patient: ${selectedRequest!.patientName})',
-                                    timestamp: DateTime.now(),
-                                    entryHash: 'e${randomId}h',
-                                    previousHash: prevHash,
-                                    ipAddress: '192.168.1.100',
-                                    metadata: {
-                                      'appeal_number': appealNum,
-                                      'auth_number': selectedRequest!.authNumber,
-                                      'grounds': groundsController.text.trim(),
+                              final decisions = MockDataRepository.instance.aiDecisions;
+                              final decision = selectedRequest!.aiDecisionId != null &&
+                                      decisions.any((d) => d.id == selectedRequest!.aiDecisionId)
+                                  ? decisions.firstWhere((d) => d.id == selectedRequest!.aiDecisionId)
+                                  : null;
+                              final medicalNecessity = ((decision?.medicalNecessityScore ?? 0.75) * 100).toInt();
+
+                              final Map<String, dynamic> mlPayload = {
+                                "patient_age": patientAge,
+                                "procedure": selectedRequest!.procedureDescription,
+                                "denial_reason": selectedRequest!.rejectionReason ?? 'Not Medically Necessary',
+                                "medical_necessity_score": medicalNecessity,
+                                "documentation_completeness_pct": 85,
+                                "patient_severity": "Medium",
+                                "previous_treatment_failed": "Yes",
+                                "clinical_guideline_match": (decision?.medicalNecessityScore ?? 0.7) >= 0.7 ? 'Yes' : 'No',
+                                "previous_authorization_history": "No Prior Request",
+                              };
+
+                              double prob = 0.71;
+                              double low = 0.58;
+                              double high = 0.96;
+
+                              // 2. Query the ML microservice on AWS / Localhost
+                              try {
+                                final dio = Dio(BaseOptions(
+                                  connectTimeout: const Duration(seconds: 4),
+                                  receiveTimeout: const Duration(seconds: 4),
+                                ));
+                                final response = await dio.post(
+                                  AppConstants.appealMlEndpoint,
+                                  data: mlPayload,
+                                  options: Options(
+                                    headers: {
+                                      'Authorization': 'Bearer dev-key-12345',
                                     },
                                   ),
                                 );
+                                if (response.statusCode == 200 && response.data != null) {
+                                  final data = response.data as Map<String, dynamic>;
+                                  if (data['success'] == true) {
+                                    final pred = data['prediction'] as Map<String, dynamic>;
+                                    prob = (pred['success_probability'] as num).toDouble();
+                                    low = (pred['confidence_low'] as num).toDouble();
+                                    high = (pred['confidence_high'] as num).toDouble();
+                                  }
+                                }
+                              } catch (e) {
+                                debugPrint("ML prediction failed, using fallback: $e");
+                                // Fallback to offline / deterministic mock
+                                prob = 0.65 + (DateTime.now().millisecond % 30) / 100.0;
+                                low = prob - 0.1;
+                                high = prob + 0.15;
+                              }
 
-                                // Close dialog, update parent widget state
-                                Navigator.pop(dialogCtx);
-                                setState(() {});
+                              if (!dialogCtx.mounted) return;
 
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Appeal case $appealNum has been filed and submitted to AI review.'),
-                                    backgroundColor: AppColors.success,
-                                  ),
+                              // 3. Add appeal case to repository
+                              final randomId = DateTime.now().millisecondsSinceEpoch.toString().substring(8);
+                              final appealNum = 'APL-2024-0${randomId}';
+                              
+                              final newAppeal = AppealCase(
+                                id: 'appeal-$randomId',
+                                appealNumber: appealNum,
+                                authorizationId: selectedRequest!.id,
+                                authNumber: selectedRequest!.authNumber,
+                                patientName: selectedRequest!.patientName,
+                                filedById: 'usr-006', // Mock Current Hospital Admin
+                                filedByName: 'Sarah Jenkins',
+                                status: AppealStatus.submitted,
+                                filedAt: DateTime.now(),
+                                groundsForAppeal: groundsController.text.trim(),
+                                supportingEvidence: treatmentController.text.trim(),
+                                aiSuccessProbability: prob,
+                                aiProbabilityLow: low,
+                                aiProbabilityHigh: high,
+                                documentIds: mockDocuments,
+                                draftAppealLetter: _generateMockAppealLetter(
+                                  selectedRequest!,
+                                  groundsController.text.trim(),
+                                  treatmentController.text.trim(),
+                                  mockDocuments,
+                                ),
+                              );
+
+                              MockDataRepository.instance.appeals.insert(0, newAppeal);
+
+                              // 4. Update authorization status to underReview
+                              final idx = MockDataRepository.instance.authorizations
+                                  .indexWhere((a) => a.id == selectedRequest!.id);
+                              if (idx != -1) {
+                                final req = MockDataRepository.instance.authorizations[idx];
+                                MockDataRepository.instance.authorizations[idx] = AuthorizationRequest(
+                                  id: req.id,
+                                  authNumber: req.authNumber,
+                                  patientId: req.patientId,
+                                  patientName: req.patientName,
+                                  patientDob: req.patientDob,
+                                  patientInsuranceId: req.patientInsuranceId,
+                                  requestingDoctorId: req.requestingDoctorId,
+                                  requestingDoctorName: req.requestingDoctorName,
+                                  facilityName: req.facilityName,
+                                  facilityNpi: req.facilityNpi,
+                                  diagnosisCode: req.diagnosisCode,
+                                  diagnosisDescription: req.diagnosisDescription,
+                                  procedureCode: req.procedureCode,
+                                  procedureDescription: req.procedureDescription,
+                                  drugName: req.drugName,
+                                  drugNdc: req.drugNdc,
+                                  insurancePlanId: req.insurancePlanId,
+                                  insurancePlanName: req.insurancePlanName,
+                                  status: AuthorizationStatus.underReview,
+                                  priority: req.priority,
+                                  requestedAt: req.requestedAt,
+                                  reviewedAt: DateTime.now(),
+                                  decidedAt: req.decidedAt,
+                                  processingTimeMs: req.processingTimeMs,
+                                  reviewerNotes: 'Appeal submitted. Re-evaluating decision.',
+                                  rejectionReason: req.rejectionReason,
+                                  policyClauseCited: req.policyClauseCited,
+                                  documentIds: [...req.documentIds, ...mockDocuments],
+                                  aiDecisionId: req.aiDecisionId,
+                                  isUrgent: req.isUrgent,
+                                  slaStatus: req.slaStatus,
+                                  dataSource: req.dataSource,
+                                  cmsNpiNumber: req.cmsNpiNumber,
+                                  cmsSpecialty: req.cmsSpecialty,
                                 );
-                              });
+                              }
+
+                              // 5. Log Audit Trail
+                              final prevHash = MockDataRepository.instance.auditLogs.isNotEmpty 
+                                  ? MockDataRepository.instance.auditLogs.last.entryHash 
+                                  : 'f9e2d1c6b3a8';
+                              MockDataRepository.instance.auditLogs.add(
+                                AuditLogEntry(
+                                  id: 'log-$randomId',
+                                  action: 'appeal.filed',
+                                  actorId: 'usr-006',
+                                  actorName: 'Sarah Jenkins',
+                                  actorRole: 'Hospital Admin',
+                                  resourceId: 'appeal-$randomId',
+                                  resourceType: 'AppealCase',
+                                  description: 'Appeal $appealNum filed for auth ${selectedRequest!.authNumber} (Patient: ${selectedRequest!.patientName})',
+                                  timestamp: DateTime.now(),
+                                  entryHash: 'e${randomId}h',
+                                  previousHash: prevHash,
+                                  ipAddress: '192.168.1.100',
+                                  metadata: {
+                                    'appeal_number': appealNum,
+                                    'auth_number': selectedRequest!.authNumber,
+                                    'grounds': groundsController.text.trim(),
+                                  },
+                                ),
+                              );
+
+                              // Close dialog, update parent widget state
+                              Navigator.pop(dialogCtx);
+                              setState(() {});
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Appeal case $appealNum has been filed and submitted to AI review.'),
+                                  backgroundColor: AppColors.success,
+                                ),
+                              );
                             }
                           },
                           icon: const Icon(PhosphorIconsRegular.paperPlaneRight, size: 16),

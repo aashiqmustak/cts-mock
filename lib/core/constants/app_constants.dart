@@ -75,14 +75,7 @@ class AppConstants {
   static const String statusWithdrawn = 'Withdrawn';
 
   // ─── Demo Credentials ─────────────────────────────────────────────────────
-  static const List<Map<String, String>> demoCredentials = [
-    {'email': 'admin@mediauth.ai',    'password': 'Admin@123',   'role': 'administrator',     'name': 'Alexandra Chen'},
-    {'email': 'dr.johnson@mediauth.ai','password': 'Doctor@123', 'role': 'doctor',            'name': 'Dr. Michael Johnson'},
-    {'email': 'reviewer@mediauth.ai', 'password': 'Review@123',  'role': 'insuranceReviewer', 'name': 'Sarah Williams'},
-    {'email': 'staff@mediauth.ai',    'password': 'Staff@123',   'role': 'hospitalStaff',     'name': 'James Rodriguez'},
-    {'email': 'patient@mediauth.ai',  'password': 'Patient@123', 'role': 'patient',           'name': 'Emily Thompson'},
-    {'email': 'hospital_admin@mediauth.ai', 'password': 'Admin@123', 'role': 'adminHospital', 'name': 'Sarah Jenkins'},
-  ];
+  static const List<Map<String, String>> demoCredentials = [];
 
   // ─── Fraud Anomaly Thresholds ─────────────────────────────────────────────
   static const double fraudHighRiskScore    = 0.75;
@@ -92,4 +85,8 @@ class AppConstants {
   static const int chartDays30  = 30;
   static const int chartDays60  = 60;
   static const int chartDays90  = 90;
+
+  // ─── ML Service Endpoints ──────────────────────────────────────────────────
+  static const String appealMlEndpoint = 'http://127.0.0.1:8000/predict_appeal';
+  static const String priorAuthEndpoint = 'http://3.85.124.27:8000/analyze';
 }

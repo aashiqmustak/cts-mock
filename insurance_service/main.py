@@ -166,8 +166,8 @@ def verify_insurance():
                     insurer = "Cigna"
                 
                 extracted = {
-                    "policy_number": policy_match.group(1).strip() if policy_match else "POL-TEMP-8837",
-                    "member_id": member_id_match.group(1).strip() if member_id_match else "ID-TEMP-0019",
+                    "policy_number": policy_match.group(1).strip() if policy_match else None,
+                    "member_id": member_id_match.group(1).strip() if member_id_match else None,
                     "policy_holder": name_match.group(1).strip().replace("\n", " ") if name_match else "Emily Thompson",
                     "validity": "2027-12-31",
                     "coverage": "Verified In-Network Medical Benefits",

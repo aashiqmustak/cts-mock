@@ -31,77 +31,6 @@ class AuthState {
     );
   }
 }
-
-// ─── Seeded Demo Users ────────────────────────────────────────────────────────
-final _demoUsers = <String, AppUser>{
-  'admin@mediauth.ai': AppUser(
-    id: 'usr-001',
-    name: 'Alexandra Chen',
-    email: 'admin@mediauth.ai',
-    role: UserRole.administrator,
-    facility: 'MediAuth Systems HQ',
-    createdAt: DateTime(2024, 1, 15),
-    lastLoginAt: DateTime.now().subtract(const Duration(hours: 2)),
-  ),
-  'dr.johnson@mediauth.ai': AppUser(
-    id: 'usr-002',
-    name: 'Dr. Michael Johnson',
-    email: 'dr.johnson@mediauth.ai',
-    role: UserRole.doctor,
-    facility: 'Metropolitan General Hospital',
-    specialization: 'Cardiology',
-    licenseNumber: 'NPI-1234567890',
-    createdAt: DateTime(2024, 2, 10),
-    lastLoginAt: DateTime.now().subtract(const Duration(hours: 1)),
-  ),
-  'reviewer@mediauth.ai': AppUser(
-    id: 'usr-003',
-    name: 'Sarah Williams',
-    email: 'reviewer@mediauth.ai',
-    role: UserRole.insuranceReviewer,
-    facility: 'BlueCross BlueShield — Northeast',
-    createdAt: DateTime(2024, 3, 5),
-    lastLoginAt: DateTime.now().subtract(const Duration(minutes: 30)),
-  ),
-  'staff@mediauth.ai': AppUser(
-    id: 'usr-004',
-    name: 'James Rodriguez',
-    email: 'staff@mediauth.ai',
-    role: UserRole.hospitalStaff,
-    facility: 'Metropolitan General Hospital',
-    createdAt: DateTime(2024, 4, 20),
-    lastLoginAt: DateTime.now().subtract(const Duration(hours: 5)),
-  ),
-  'patient@mediauth.ai': AppUser(
-    id: 'usr-005',
-    name: 'Emily Thompson',
-    email: 'patient@mediauth.ai',
-    role: UserRole.patient,
-    createdAt: DateTime(2024, 5, 8),
-    lastLoginAt: DateTime.now().subtract(const Duration(days: 2)),
-  ),
-  'hospital_admin@mediauth.ai': AppUser(
-    id: 'usr-006',
-    name: 'Sarah Jenkins',
-    email: 'hospital_admin@mediauth.ai',
-    role: UserRole.adminHospital,
-    facility: 'Metropolitan General Hospital',
-    createdAt: DateTime(2024, 6, 12),
-    lastLoginAt: DateTime.now().subtract(const Duration(hours: 3)),
-  ),
-};
-
-const _demoPasswords = <String, String>{
-  'admin@mediauth.ai':    'Admin@123',
-  'dr.johnson@mediauth.ai': 'Doctor@123',
-  'reviewer@mediauth.ai': 'Review@123',
-  'staff@mediauth.ai':    'Staff@123',
-  'patient@mediauth.ai':  'Patient@123',
-  'hospital_admin@mediauth.ai': 'Admin@123',
-};
-
-const _kSessionEmailKey = 'mediauth_session_email';
-
 // ─── Auth Notifier ────────────────────────────────────────────────────────────
 class AuthNotifier extends StateNotifier<AuthState> {
   final _supabase = Supabase.instance.client;
@@ -114,11 +43,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final email = sbUser.email ?? '';
     final meta = sbUser.userMetadata ?? {};
     
-    // Check if there is demo data for this email first (useful for testing with seeded accounts)
-    final demo = _demoUsers[email.trim().toLowerCase()];
-    
     // Extract metadata values
-    final name = meta['name'] as String? ?? demo?.name ?? email.split('@').first;
+    final name = meta['name'] as String? ?? email.split('@').first;
     
     // Map role
     UserRole role = UserRole.patient; // Default role
@@ -127,13 +53,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
       try {
         role = UserRole.values.firstWhere((r) => r.name == roleStr);
       } catch (_) {}
-    } else if (demo != null) {
-      role = demo.role;
     }
     
-    final facility = meta['facility'] as String? ?? demo?.facility;
-    final specialization = meta['specialization'] as String? ?? demo?.specialization;
-    final licenseNumber = meta['licenseNumber'] as String? ?? demo?.licenseNumber;
+    final facility = meta['facility'] as String?;
+    final specialization = meta['specialization'] as String?;
+    final licenseNumber = meta['licenseNumber'] as String?;
     
     return AppUser(
       id: sbUser.id,
@@ -200,6 +124,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     String? facility,
     String? specialization,
     String? licenseNumber,
+    String? phone,
   }) async {
     state = state.copyWith(status: AuthStatus.loading);
     try {
@@ -212,6 +137,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           if (facility != null) 'facility': facility,
           if (specialization != null) 'specialization': specialization,
           if (licenseNumber != null) 'licenseNumber': licenseNumber,
+          if (phone != null) 'phone': phone,
         },
       );
 
@@ -229,6 +155,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
             if (facility != null) 'facility': facility,
             if (specialization != null) 'specialization': specialization,
             if (licenseNumber != null) 'license_number': licenseNumber,
+            if (phone != null) 'phone': phone,
             'created_at': DateTime.now().toIso8601String(),
           });
         } catch (_) {}
@@ -247,7 +174,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
                 'insurance_id': 'INS-PENDING',
                 'insurance_plan': 'Standard Health Plan',
                 'payer': 'PriorX Health',
-                'contact_phone': 'N/A',
+                'contact_phone': phone ?? 'N/A',
               });
               break;
 
@@ -259,7 +186,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
                 'npi': licenseNumber ?? 'NPI-PENDING',
                 'specialization': specialization ?? 'General Medicine',
                 'facility': facility ?? 'Metropolitan General Hospital',
-                'phone': 'N/A',
+                'phone': phone ?? 'N/A',
                 'is_active': true,
               });
               break;
@@ -270,6 +197,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
                 'name': name,
                 'email': email.trim(),
                 'facility': facility ?? 'PriorX Insurance',
+                'phone': phone,
               });
               break;
 
@@ -279,6 +207,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
                 'name': name,
                 'email': email.trim(),
                 'facility': facility ?? 'Metropolitan General Hospital',
+                'phone': phone,
               });
               break;
 
@@ -288,6 +217,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
                 'name': name,
                 'email': email.trim(),
                 'facility': facility ?? 'Metropolitan General Hospital',
+                'phone': phone,
               });
               break;
 
@@ -297,6 +227,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
                 'name': name,
                 'email': email.trim(),
                 'facility': facility ?? 'MediAuth Systems HQ',
+                'phone': phone,
               });
               break;
           }
