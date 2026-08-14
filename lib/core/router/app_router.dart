@@ -8,6 +8,7 @@ import '../providers/auth_provider.dart';
 import '../../features/authentication/presentation/splash_screen.dart';
 import '../../features/authentication/presentation/login_screen.dart';
 import '../../features/authentication/presentation/forgot_password_screen.dart';
+import '../../features/authentication/presentation/register_screen.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
 import '../../features/prior_authorization/presentation/authorization_list_screen.dart';
 import '../../features/prior_authorization/presentation/authorization_detail_screen.dart';
@@ -43,6 +44,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isAuthenticated = authState.isAuthenticated;
       final isOnAuthScreen = state.matchedLocation == RouteNames.login ||
           state.matchedLocation == RouteNames.forgotPassword ||
+          state.matchedLocation == RouteNames.register ||
           state.matchedLocation == RouteNames.splash;
 
       // Not authenticated → go to login
@@ -103,6 +105,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: RouteNames.forgotPassword,
         name: 'forgotPassword',
         builder: (ctx, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: RouteNames.register,
+        name: 'register',
+        builder: (ctx, state) => const RegisterScreen(),
       ),
       GoRoute(
         path: RouteNames.taskFlow,

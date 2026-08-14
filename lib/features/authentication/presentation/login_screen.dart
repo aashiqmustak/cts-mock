@@ -926,10 +926,36 @@ class _LoginForm extends StatelessWidget {
                                         ),
                                 ),
                               ).animate(delay: 300.ms).fadeIn().slideY(begin: 0.15),
+                              const SizedBox(height: 16),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    "Don't have an account?",
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.6),
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => context.go(RouteNames.register),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: const Color(0xFF0EA5E9),
+                                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                                    ),
+                                    child: const Text(
+                                      'Register',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ).animate(delay: 350.ms).fadeIn().slideY(begin: 0.15),
                             ],
                           ),
                         ),
-
                         const SizedBox(height: 36),
 
                         // Footer
