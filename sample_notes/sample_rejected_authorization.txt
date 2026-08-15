@@ -1,0 +1,28 @@
+CLINICAL PRIOR AUTHORIZATION CONSULTATION NOTE (DENIAL TEST CASE)
+------------------------------------------------------------------
+Patient Name: Marcus Vance
+Date of Birth: 1982-04-12
+Member ID: MEM-774920
+MRN: MRN-88201
+
+DIAGNOSIS & CLINICAL HISTORY:
+ICD-10 Code: M54.50
+Diagnosis Description: Low back pain, unspecified (L4-L5 lumbar disc degeneration)
+Clinical Notes: Patient reports 3 weeks of lower back discomfort. Conservative physical therapy NOT yet attempted. No trial of NSAIDs or non-pharmacological interventions documented.
+
+PROCEDURE REQUEST:
+CPT Code: 72148
+Procedure Description: MRI Lumbar Spine without Contrast
+Scheduled Date: 2026-09-10
+Facility NPI: 1982736450
+
+INSURANCE & PROVIDER DETAILS:
+Insurance Plan: BlueCross BlueChoice PPO
+Group Number: GRP-9912
+Requesting Physician NPI: 1234567890
+Priority: Routine
+
+POLICY EVALUATION STATUS:
+Status: REJECTED / DENIED
+Rejection Reason: Step therapy requirements not met. CMS LCD Guideline 35182 requires at least 6 weeks of documented conservative therapy (physical therapy/NSAIDs) prior to advanced MRI lumbar spine imaging.
+Grounds for Appeal: Patient has documented severe neurological deficit, acute motor weakness, and radiculopathy rendering 6-week delay clinically contraindicated.

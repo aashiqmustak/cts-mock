@@ -1,0 +1,32 @@
+CLINICAL PRIOR AUTHORIZATION CONSULTATION NOTE (STRICT DENIAL / REJECTION CASE)
+----------------------------------------------------------------------------------
+Patient Name: Marcus Vance
+Date of Birth: 1982-04-12
+Member ID: MEM-774920
+MRN: MRN-88201
+
+DIAGNOSIS & CLINICAL HISTORY:
+ICD-10 Code: G44.209
+Diagnosis Description: Tension-type headache, unspecified
+Clinical Notes: Patient reports 10 days of mild tension-type headache. No focal neurological deficits observed on physical exam. Conservative analgesics (acetaminophen / ibuprofen) NOT attempted. No previous neurological evaluation or step-therapy documented.
+
+PROCEDURE REQUEST:
+CPT Code: 70553
+Procedure Description: MRI Brain without and with Contrast
+Scheduled Date: 2026-09-15
+Facility NPI: 1982736450
+
+INSURANCE & PROVIDER DETAILS:
+Insurance Plan: BlueCross HMO Select
+Group Number: GRP-9912
+Requesting Physician NPI: 1234567890
+Priority: Routine
+
+POLICY EVALUATION & MANDATORY CRITERIA FAILURE:
+- Criterion 1 (Step Therapy): FAILED. CMS LCD Guideline 35182 requires minimum 6 weeks of conservative pharmacological therapy prior to advanced neuroimaging. Zero trial attempted.
+- Criterion 2 (Red Flag Symptoms): FAILED. No neurological deficits, papilledema, acute onset thunderclap headache, or seizure activity documented.
+- Criterion 3 (Diagnostic Specificity): FAILED. ICD-10 G44.209 does not meet medical necessity threshold for contrast-enhanced MRI brain imaging.
+
+POLICY DECISION STATUS:
+Status: REJECTED / DENIED
+Rejection Reason: Fails CMS LCD-35182 Medical Necessity & Step Therapy Guidelines. Advanced MRI Brain imaging is contraindicated as first-line diagnostic for uncomplicated tension headache without prior conservative trial or documented red-flag neurological indicators.
