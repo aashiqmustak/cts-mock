@@ -89,27 +89,9 @@ class AppConstants {
   static const int chartDays90  = 90;
 
   // ─── ML Service Endpoints ──────────────────────────────────────────────────
-  static String get appealMlEndpoint {
-    if (kIsWeb) {
-      final origin = Uri.base.origin;
-      if (Uri.base.host == 'localhost' || Uri.base.host == '127.0.0.1') {
-        return 'http://127.0.0.1:8000/predict_appeal';
-      }
-      return '$origin/api/predict_appeal';
-    }
-    return 'http://127.0.0.1:8000/predict_appeal';
-  }
+  static String get appealMlEndpoint => 'http://100.61.168.94:8001/predict';
 
-  static String get verifyInsuranceEndpoint {
-    if (kIsWeb) {
-      final origin = Uri.base.origin;
-      if (Uri.base.host == 'localhost' || Uri.base.host == '127.0.0.1') {
-        return 'http://127.0.0.1:8000/verify';
-      }
-      return '$origin/api/verify';
-    }
-    return 'http://127.0.0.1:8000/verify';
-  }
+  static String get verifyInsuranceEndpoint => 'http://100.61.168.94:8000/verify';
 
-  static const String priorAuthEndpoint = 'http://3.85.124.27:8000/analyze';
+  static const String priorAuthEndpoint = 'http://100.61.168.94:8000/verify';
 }
