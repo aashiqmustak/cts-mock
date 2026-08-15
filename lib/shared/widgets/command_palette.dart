@@ -9,6 +9,29 @@ import '../../core/theme/app_theme.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../models/user_role.dart';
 
+// ─── Search History State ────────────────────────────────────────────────────
+final searchHistoryProvider = StateNotifierProvider<SearchHistoryNotifier, List<String>>((ref) {
+  return SearchHistoryNotifier();
+});
+
+class SearchHistoryNotifier extends StateNotifier<List<String>> {
+  SearchHistoryNotifier() : super(['Cardiology', 'PA-2024-001', 'MRI Appeal', 'Dr. Fox']);
+
+  void addQuery(String query) {
+    if (query.trim().isEmpty) return;
+    final clean = query.trim();
+    state = [clean, ...state.where((q) => q != clean)].take(5).toList();
+  }
+
+  void removeQuery(String query) {
+    state = state.where((q) => q != query).toList();
+  }
+
+  void clear() {
+    state = [];
+  }
+}
+
 // ─── Command Item ─────────────────────────────────────────────────────────────
 class CommandItem {
   final String id;
@@ -178,6 +201,11 @@ class _CommandPaletteState extends ConsumerState<CommandPalette>
   }
 
   void _navigate(CommandItem item) {
+    if (_query.trim().isNotEmpty) {
+      ref.read(searchHistoryProvider.notifier).addQuery(_query);
+    } else {
+      ref.read(searchHistoryProvider.notifier).addQuery(item.title);
+    }
     _close();
     context.go(item.route);
   }
@@ -259,6 +287,70 @@ class _CommandPaletteState extends ConsumerState<CommandPalette>
                       ),
 
                       const Divider(height: 1),
+
+                      if (_query.isEmpty) ...[
+                        Consumer(
+                          builder: (context, ref, child) {
+                            final history = ref.watch(searchHistoryProvider);
+                            if (history.isEmpty) return const SizedBox.shrink();
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'RECENT SEARCHES',
+                                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                          color: AppColors.textTertiary,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                      InkWell(
+                                        onTap: () => ref.read(searchHistoryProvider.notifier).clear(),
+                                        child: Text(
+                                          'Clear All',
+                                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                            color: AppColors.primary,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  height: 38,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  child: ListView(
+                                    scrollDirection: Axis.horizontal,
+                                    children: history.map((q) => Padding(
+                                      padding: const EdgeInsets.only(right: 8),
+                                      child: ActionChip(
+                                        label: Text(q, style: const TextStyle(fontSize: 11)),
+                                        padding: EdgeInsets.zero,
+                                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        backgroundColor: AppColors.neutral50,
+                                        onPressed: () {
+                                          _controller.text = q;
+                                          _controller.selection = TextSelection.fromPosition(TextPosition(offset: q.length));
+                                          setState(() {
+                                            _query = q;
+                                          });
+                                        },
+                                      ),
+                                    )).toList(),
+                                  ),
+                                ),
+                                const Divider(height: 16),
+                              ],
+                            );
+                          },
+                        ),
+                      ],
 
                       // Results
                       if (filtered.isEmpty)

@@ -15,6 +15,7 @@ import '../../../repositories/data_repository.dart';
 import '../../../core/utils/platform_helper.dart';
 import '../../../core/providers/authorizations_provider.dart';
 import '../../../core/utils/patient_portal_helper.dart';
+import '../../../shared/widgets/command_palette.dart';
 
 // ─── Dashboard Screen ─────────────────────────────────────────────────────────
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -47,6 +48,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   // ─── Desktop Dashboard (Mockup Left/Right Panels) ───────────────────────────
   Widget _buildDesktopDashboard(BuildContext context) {
     final user = ref.watch(currentUserProvider);
+    final stats = ref.watch(dashboardStatsProvider);
     final now = DateTime.now();
     final patients = MockDataRepository.instance.patients;
     final appointments = MockDataRepository.instance.appointments;
@@ -106,53 +108,61 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   children: [
                     // Search Bar
                     Expanded(
-                      child: Container(
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: AppColors.neutral50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade200),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Row(
-                          children: [
-                            Icon(PhosphorIconsRegular.magnifyingGlass, color: Colors.grey.shade500, size: 20),
-                            const SizedBox(width: 12),
-                            Text(
-                              "Search anything here...",
-                              style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-                            ),
-                          ],
+                      child: InkWell(
+                        onTap: () => ref.read(commandPaletteOpenProvider.notifier).state = true,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: AppColors.neutral50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey.shade200),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Row(
+                            children: [
+                              Icon(PhosphorIconsRegular.magnifyingGlass, color: Colors.grey.shade500, size: 20),
+                              const SizedBox(width: 12),
+                              Text(
+                                "Search actions, pages, patients... (⌘K)",
+                                style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                     const SizedBox(width: 24),
                     // Action Icons
-                    Stack(
-                      children: [
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: AppColors.neutral50,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.grey.shade200),
-                          ),
-                          child: Icon(PhosphorIconsRegular.bell, color: AppColors.mockupDark, size: 20),
-                        ),
-                        Positioned(
-                          right: 12,
-                          top: 12,
-                          child: Container(
-                            width: 6,
-                            height: 6,
-                            decoration: const BoxDecoration(
-                              color: Colors.red,
+                    InkWell(
+                      onTap: () => context.go(RouteNames.notifications),
+                      borderRadius: BorderRadius.circular(22),
+                      child: Stack(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: AppColors.neutral50,
                               shape: BoxShape.circle,
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: Icon(PhosphorIconsRegular.bell, color: AppColors.mockupDark, size: 20),
+                          ),
+                          Positioned(
+                            right: 12,
+                            top: 12,
+                            child: Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                     const SizedBox(width: 16),
                     // Profile Info
@@ -223,28 +233,39 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ],
                     ),
                     // Export button
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: AppColors.mockupTeal,
-                        borderRadius: BorderRadius.circular(10),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.mockupTeal.withOpacity(0.15),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
+                    InkWell(
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Dashboard report exported successfully as Excel (.xls)!'),
+                            backgroundColor: AppColors.success,
                           ),
-                        ],
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(PhosphorIconsRegular.downloadSimple, color: Colors.white, size: 16),
-                          const SizedBox(width: 8),
-                          Text(
-                            "Export data  .xls",
-                            style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
-                          ),
-                        ],
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: AppColors.mockupTeal,
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.mockupTeal.withOpacity(0.15),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(PhosphorIconsRegular.downloadSimple, color: Colors.white, size: 16),
+                            const SizedBox(width: 8),
+                            Text(
+                              "Export data  .xls",
+                              style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -252,30 +273,54 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
                 const SizedBox(height: 28),
 
-                // Stat Cards Row (Total Patients & Total Appointments)
+                // Stat Cards Row (Total Requests & Approved & Pending & Avg Decision Time)
                 Row(
                   children: [
                     Expanded(
                       child: _buildDesktopStatCard(
-                        title: "Total patients",
-                        value: patients.length.toString(),
+                        title: "PA Requests",
+                        value: stats.totalRequests.toString(),
                         trend: "$patientTrendSign$patientTrendPercent%",
                         trendColor: patientTrendPercent >= 0 ? AppColors.mockupTeal : Colors.red.shade400,
                         isUp: patientTrendPercent >= 0,
                         sparkHeights: patientSparkHeights,
-                        trendMessage: "${patients.length} patients registered in the system",
+                        trendMessage: "Active PA requests in system",
                       ),
                     ),
-                    const SizedBox(width: 20),
+                    const SizedBox(width: 16),
                     Expanded(
                       child: _buildDesktopStatCard(
-                        title: "Total appointments",
-                        value: appointments.length.toString(),
+                        title: "Approved PAs",
+                        value: stats.approvedToday.toString(),
                         trend: "$apptTrendSign$apptTrendPercent%",
                         trendColor: apptTrendPercent >= 0 ? AppColors.mockupTeal : Colors.red.shade400,
                         isUp: apptTrendPercent >= 0,
                         sparkHeights: appointmentSparkHeights,
-                        trendMessage: "${appointments.length} total appointments scheduled",
+                        trendMessage: "Instant decisions: ${(stats.percentInstantDecision * 100).toStringAsFixed(1)}%",
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildDesktopStatCard(
+                        title: "Pending Queue",
+                        value: stats.pendingCount.toString(),
+                        trend: "-5%",
+                        trendColor: AppColors.mockupTeal,
+                        isUp: false,
+                        sparkHeights: [8, 12, 10, 15, 14, 18, 12],
+                        trendMessage: "SLA compliance: ${(stats.percentWithinSla * 100).toStringAsFixed(1)}%",
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildDesktopStatCard(
+                        title: "Avg Decision Time",
+                        value: "${(stats.avgProcessingTimeMs / 1000).toStringAsFixed(1)}s",
+                        trend: "-15%",
+                        trendColor: AppColors.mockupTeal,
+                        isUp: false,
+                        sparkHeights: [18, 16, 12, 8, 6, 5, 4],
+                        trendMessage: "Target decision time: < 5s SLA",
                       ),
                     ),
                   ],
@@ -417,7 +462,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              // Value and trend indicator
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -441,19 +485,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  // mini spark bar and message Row
-                  Row(
-                    children: [
-                      _MiniBarChart(heights: sparkHeights),
-                      const SizedBox(width: 10),
-                      Text(
-                        trendMessage,
-                        style: TextStyle(fontSize: 10, color: Colors.grey.shade500, height: 1.2),
-                      ),
-                    ],
-                  ),
                 ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _MiniBarChart(heights: sparkHeights),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  trendMessage,
+                  style: TextStyle(fontSize: 10, color: Colors.grey.shade500, height: 1.2),
+                ),
               ),
             ],
           ),
@@ -464,15 +509,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   // ─── Surgeries Performed widget ──────────────────────────────────────────────
   Widget _buildSurgeriesPerformed() {
-    final surgeries = MockDataRepository.instance.surgeries;
-    final totalCount = surgeries.length;
-    final emergencyCount = surgeries.where((s) => s.procedure.toLowerCase().contains('emergency')).length;
-    final electiveCount = totalCount - emergencyCount;
+    final auths = ref.watch(authorizationsProvider);
+    final totalCount = auths.length;
+    final urgentCount = auths.where((a) => a.priority == AuthorizationPriority.urgent || a.priority == AuthorizationPriority.emergent || a.priority == AuthorizationPriority.stat).length;
+    final routineCount = totalCount - urgentCount;
 
     // Generate heights based on surgery date days
     final heights = List<double>.filled(24, 4.0);
-    for (final s in surgeries) {
-      final index = s.dateTime.day % 24;
+    for (final a in auths) {
+      final index = a.requestedAt.day % 24;
       heights[index] = heights[index] + 6.0;
       if (heights[index] > 26.0) heights[index] = 26.0;
     }
@@ -484,7 +529,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              "Surgeries performed",
+              "PA requests by priority",
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey),
             ),
             Container(
@@ -514,7 +559,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             const SizedBox(width: 6),
             const Text(
-              "+2%",
+              "+5%",
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.mockupTeal),
             ),
             const Icon(Icons.arrow_drop_up_rounded, color: AppColors.mockupTeal, size: 16),
@@ -543,15 +588,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           children: [
             Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.mockupPurple, shape: BoxShape.circle)),
             const SizedBox(width: 6),
-            const Text("Elective", style: TextStyle(fontSize: 11, color: Colors.grey)),
+            const Text("Routine", style: TextStyle(fontSize: 11, color: Colors.grey)),
             const SizedBox(width: 8),
-            Text("$electiveCount", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.mockupDark)),
+            Text("$routineCount", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.mockupDark)),
             const SizedBox(width: 24),
             Container(width: 8, height: 8, decoration: BoxDecoration(color: AppColors.mockupPurple.withOpacity(0.3), shape: BoxShape.circle)),
             const SizedBox(width: 6),
-            const Text("Emergency", style: TextStyle(fontSize: 11, color: Colors.grey)),
+            const Text("Urgent / STAT", style: TextStyle(fontSize: 11, color: Colors.grey)),
             const SizedBox(width: 8),
-            Text("$emergencyCount", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.mockupDark)),
+            Text("$urgentCount", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.mockupDark)),
           ],
         ),
       ],
@@ -582,7 +627,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         points.add((approvedCount / decidedCount) * 100);
       }
     }
-    
+
     while (points.length < 9) {
       if (points.isNotEmpty) {
         points.insert(0, points.first);
@@ -601,7 +646,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              "Satisfaction rate",
+              "PA Approval rate",
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey),
             ),
             Container(
@@ -750,8 +795,32 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   // ─── Mobile Dashboard (Patient App style mockup) ───────────────────────────
+  Widget _buildMobileStatCard(String title, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.neutral50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(title, style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: color),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildMobileDashboard(BuildContext context) {
     final user = ref.watch(currentUserProvider);
+    final stats = ref.watch(dashboardStatsProvider);
     final userInitials = user != null && user.name.isNotEmpty 
         ? user.name.split(' ').map((e) => e[0]).take(2).join().toUpperCase() 
         : 'GS';
@@ -801,50 +870,76 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               Row(
                 children: [
                   // Bell
-                  Stack(
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: AppColors.neutral50,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.grey.shade200),
-                        ),
-                        child: Icon(PhosphorIconsRegular.bell, color: AppColors.mockupDark, size: 18),
-                      ),
-                      Positioned(
-                        right: 10,
-                        top: 10,
-                        child: Container(
-                          width: 5,
-                          height: 5,
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
+                  InkWell(
+                    onTap: () => context.go(RouteNames.notifications),
+                    borderRadius: BorderRadius.circular(18),
+                    child: Stack(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: AppColors.neutral50,
                             shape: BoxShape.circle,
+                            border: Border.all(color: Colors.grey.shade200),
+                          ),
+                          child: Icon(PhosphorIconsRegular.bell, color: AppColors.mockupDark, size: 18),
+                        ),
+                        Positioned(
+                          right: 10,
+                          top: 10,
+                          child: Container(
+                            width: 5,
+                            height: 5,
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   const SizedBox(width: 8),
                   // Menu
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: AppColors.neutral50,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.grey.shade200),
+                  InkWell(
+                    onTap: () => Scaffold.of(context).openDrawer(),
+                    borderRadius: BorderRadius.circular(18),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: AppColors.neutral50,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Icon(PhosphorIconsRegular.list, color: AppColors.mockupDark, size: 18),
                     ),
-                    child: Icon(PhosphorIconsRegular.list, color: AppColors.mockupDark, size: 18),
                   ),
                 ],
               ),
             ],
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
+
+          // Mobile Stat Grid
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 2.2,
+            children: [
+              _buildMobileStatCard("PA Requests", stats.totalRequests.toString(), AppColors.primary),
+              _buildMobileStatCard("Approved PAs", stats.approvedToday.toString(), AppColors.success),
+              _buildMobileStatCard("Pending Queue", stats.pendingCount.toString(), AppColors.warning),
+              _buildMobileStatCard("Avg Decision", "${(stats.avgProcessingTimeMs / 1000).toStringAsFixed(1)}s", AppColors.accent),
+            ],
+          ),
+
+          const SizedBox(height: 20),
 
           // Mood Slider Card
           const _MoodSlider(),
@@ -860,7 +955,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppColors.mockupDark),
               ),
               TextButton(
-                onPressed: () {},
+                onPressed: () => context.go(RouteNames.authorizations),
                 child: const Text("View all >", style: TextStyle(color: AppColors.mockupTeal, fontSize: 12)),
               ),
             ],
@@ -1973,7 +2068,14 @@ class _DesktopCalendar extends StatelessWidget {
           children: [
             IconButton(
               icon: const Icon(Icons.chevron_left_rounded, size: 16),
-              onPressed: () {},
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Calendar month navigation is limited to the current month in demo mode.'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              },
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
             ),
@@ -1983,7 +2085,14 @@ class _DesktopCalendar extends StatelessWidget {
             ),
             IconButton(
               icon: const Icon(Icons.chevron_right_rounded, size: 16),
-              onPressed: () {},
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Calendar month navigation is limited to the current month in demo mode.'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              },
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
             ),
@@ -2065,28 +2174,19 @@ class _ConsultationsChartState extends State<_ConsultationsChart> {
   int _hoveredIndex = 2;
 
   List<Map<String, dynamic>> get _chartData {
-    final appointments = MockDataRepository.instance.appointments;
-    final patients = MockDataRepository.instance.patients;
-
+    final auths = MockDataRepository.instance.authorizations;
     final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     final counts = List.generate(7, (i) => {'male': 0, 'female': 0});
 
-    for (final appt in appointments) {
-      final weekday = appt.dateTime.weekday; // 1 = Monday, 7 = Sunday
+    for (final auth in auths) {
+      final weekday = auth.requestedAt.weekday; // 1 = Monday, 7 = Sunday
       if (weekday >= 1 && weekday <= 7) {
-        Patient? patient;
-        for (final p in patients) {
-          if (p.id == appt.patientId) {
-            patient = p;
-            break;
-          }
-        }
-        final gender = patient?.gender.toLowerCase() ?? '';
-        if (gender == 'male') {
+        if (auth.status == AuthorizationStatus.approved) {
           counts[weekday - 1]['male'] = (counts[weekday - 1]['male'] as int) + 1;
-        } else if (gender == 'female') {
+        } else if (auth.status == AuthorizationStatus.rejected) {
           counts[weekday - 1]['female'] = (counts[weekday - 1]['female'] as int) + 1;
         } else {
+          // Add other statuses to male (approved) for visual density
           counts[weekday - 1]['male'] = (counts[weekday - 1]['male'] as int) + 1;
         }
       }
@@ -2110,7 +2210,7 @@ class _ConsultationsChartState extends State<_ConsultationsChart> {
         Row(
           children: [
             const Text(
-              "Consultations",
+              "Prior Authorization Decisions",
               style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AppColors.mockupDark),
             ),
             const Spacer(),
@@ -2119,11 +2219,11 @@ class _ConsultationsChartState extends State<_ConsultationsChart> {
               children: [
                 Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.mockupTeal, shape: BoxShape.circle)),
                 const SizedBox(width: 4),
-                const Text("Male", style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w600)),
+                const Text("Approved", style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w600)),
                 const SizedBox(width: 16),
                 Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.mockupPurple, shape: BoxShape.circle)),
                 const SizedBox(width: 4),
-                const Text("Female", style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w600)),
+                const Text("Rejected", style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w600)),
               ],
             ),
             const SizedBox(width: 20),

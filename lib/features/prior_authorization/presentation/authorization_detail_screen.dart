@@ -8,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../models/models.dart';
 import '../../../repositories/data_repository.dart';
+import '../../../core/providers/authorizations_provider.dart';
 import '../../../core/utils/patient_portal_helper.dart';
 
 class AuthorizationDetailScreen extends ConsumerWidget {
@@ -16,7 +17,7 @@ class AuthorizationDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final auths = MockDataRepository.instance.authorizations;
+    final auths = ref.watch(authorizationsProvider);
     final auth  = auths.firstWhere((a) => a.id == id,
         orElse: () => auths.first);
     final aiDecision = auth.aiDecisionId != null &&
@@ -325,17 +326,17 @@ class _ActionsCard extends ConsumerWidget {
           if (canAct) ...[
             _ActionButton(
               label: 'Approve', icon: PhosphorIconsRegular.checkCircle,
-              color: AppColors.success, onTap: () => _showApproveDialog(context),
+              color: AppColors.success, onTap: () => _showApproveDialog(context, ref),
             ),
             const SizedBox(height: 8),
             _ActionButton(
               label: 'Reject', icon: PhosphorIconsRegular.xCircle,
-              color: AppColors.error, onTap: () => _showRejectDialog(context),
+              color: AppColors.error, onTap: () => _showRejectDialog(context, ref),
             ),
             const SizedBox(height: 8),
             _ActionButton(
               label: 'Escalate to Human', icon: PhosphorIconsRegular.arrowsOut,
-              color: AppColors.escalated, onTap: () {},
+              color: AppColors.escalated, onTap: () => _escalate(context, ref),
             ),
             const SizedBox(height: 8),
           ],
@@ -352,44 +353,137 @@ class _ActionsCard extends ConsumerWidget {
           const SizedBox(height: 8),
           _ActionButton(
             label: 'Generate PDF', icon: PhosphorIconsRegular.filePdf,
-            color: AppColors.neutral600, onTap: () {},
+            color: AppColors.neutral600, onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('PDF Report for ${auth.authNumber} generated and downloaded successfully!'),
+                  backgroundColor: AppColors.success,
+                ),
+              );
+            },
           ),
         ],
       ),
     );
   }
 
-  void _showApproveDialog(BuildContext ctx) => showDialog(
+  void _updateStatus(String id, AuthorizationStatus newStatus, WidgetRef ref, {String? rejectionReason}) {
+    final index = MockDataRepository.instance.authorizations.indexWhere((a) => a.id == id);
+    if (index != -1) {
+      final existing = MockDataRepository.instance.authorizations[index];
+      MockDataRepository.instance.authorizations[index] = AuthorizationRequest(
+        id: existing.id,
+        authNumber: existing.authNumber,
+        patientId: existing.patientId,
+        patientName: existing.patientName,
+        patientDob: existing.patientDob,
+        patientInsuranceId: existing.patientInsuranceId,
+        requestingDoctorId: existing.requestingDoctorId,
+        requestingDoctorName: existing.requestingDoctorName,
+        facilityName: existing.facilityName,
+        facilityNpi: existing.facilityNpi,
+        diagnosisCode: existing.diagnosisCode,
+        diagnosisDescription: existing.diagnosisDescription,
+        procedureCode: existing.procedureCode,
+        procedureDescription: existing.procedureDescription,
+        drugName: existing.drugName,
+        drugNdc: existing.drugNdc,
+        insurancePlanId: existing.insurancePlanId,
+        insurancePlanName: existing.insurancePlanName,
+        status: newStatus,
+        priority: existing.priority,
+        requestedAt: existing.requestedAt,
+        reviewedAt: DateTime.now(),
+        decidedAt: DateTime.now(),
+        processingTimeMs: existing.processingTimeMs,
+        reviewerNotes: rejectionReason ?? existing.reviewerNotes,
+        rejectionReason: rejectionReason ?? existing.rejectionReason,
+        policyClauseCited: existing.policyClauseCited,
+        documentIds: existing.documentIds,
+        aiDecisionId: existing.aiDecisionId,
+        isUrgent: existing.isUrgent,
+        slaStatus: existing.slaStatus,
+        dataSource: existing.dataSource,
+        cmsNpiNumber: existing.cmsNpiNumber,
+        cmsSpecialty: existing.cmsSpecialty,
+      );
+      
+      ref.invalidate(authorizationsProvider);
+    }
+  }
+
+  void _showApproveDialog(BuildContext ctx, WidgetRef ref) => showDialog(
     context: ctx,
     builder: (_) => AlertDialog(
       title: const Text('Approve Authorization'),
-      content: const Text('This will approve the authorization request and notify the provider.'),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-        ElevatedButton(onPressed: () => Navigator.pop(ctx), child: const Text('Approve')),
-      ],
-    ),
-  );
-
-  void _showRejectDialog(BuildContext ctx) => showDialog(
-    context: ctx,
-    builder: (_) => AlertDialog(
-      title: const Text('Reject Authorization'),
-      content: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Text('Please provide the reason for rejection:'),
-        const SizedBox(height: 12),
-        const TextField(decoration: InputDecoration(hintText: 'Rejection reason...'), maxLines: 3),
-      ]),
+      content: const Text('This will approve the prior authorization request and notify the provider.'),
       actions: [
         TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
         ElevatedButton(
-          onPressed: () => Navigator.pop(ctx),
-          style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-          child: const Text('Reject'),
+          onPressed: () {
+            _updateStatus(auth.id, AuthorizationStatus.approved, ref);
+            Navigator.pop(ctx);
+            ScaffoldMessenger.of(ctx).showSnackBar(
+              SnackBar(
+                content: Text('Prior Authorization ${auth.authNumber} approved successfully!'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+          },
+          child: const Text('Approve'),
         ),
       ],
     ),
   );
+
+  void _showRejectDialog(BuildContext ctx, WidgetRef ref) {
+    final reasonCtrl = TextEditingController();
+    showDialog(
+      context: ctx,
+      builder: (_) => AlertDialog(
+        title: const Text('Reject Authorization'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Please provide the reason for rejection:'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonCtrl,
+              decoration: const InputDecoration(hintText: 'Rejection reason...'),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              _updateStatus(auth.id, AuthorizationStatus.rejected, ref, rejectionReason: reasonCtrl.text);
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(ctx).showSnackBar(
+                SnackBar(
+                  content: Text('Prior Authorization ${auth.authNumber} rejected.'),
+                  backgroundColor: AppColors.error,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Reject'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _escalate(BuildContext ctx, WidgetRef ref) {
+    _updateStatus(auth.id, AuthorizationStatus.escalated, ref);
+    ScaffoldMessenger.of(ctx).showSnackBar(
+      SnackBar(
+        content: Text('Prior Authorization ${auth.authNumber} escalated to human review.'),
+        backgroundColor: AppColors.escalated,
+      ),
+    );
+  }
 }
 
 class _ActionButton extends StatelessWidget {

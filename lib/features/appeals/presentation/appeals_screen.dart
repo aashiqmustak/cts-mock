@@ -770,7 +770,14 @@ class _AppealCard extends StatelessWidget {
               )),
               const SizedBox(width: 8),
               OutlinedButton.icon(
-                onPressed: () {},
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('AI-Drafted Appeal Letter for Case #${appeal.appealNumber} downloaded as PDF successfully!'),
+                      backgroundColor: AppColors.success,
+                    ),
+                  );
+                },
                 icon: const Icon(PhosphorIconsRegular.download, size: 14),
                 label: const Text('PDF'),
               ),

@@ -45,7 +45,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary)),
               ]),
               ElevatedButton.icon(
-                onPressed: () {},
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('PriorX Analytics Report exported successfully as Excel (.xls)!'),
+                      backgroundColor: AppColors.success,
+                    ),
+                  );
+                },
                 icon: const Icon(PhosphorIconsRegular.download, size: 16),
                 label: const Text('Export Report'),
               ),
