@@ -121,11 +121,16 @@ class _CreateAuthorizationScreenState extends ConsumerState<CreateAuthorizationS
         final response = await dio.post(
           AppConstants.priorAuthEndpoint,
           data: formData,
+          options: Options(
+            headers: {
+              'Authorization': 'Bearer dev-key-12345',
+            },
+          ),
         );
 
         if (response.statusCode == 200 && response.data != null) {
           final data = response.data as Map<String, dynamic>;
-          final extInfo = data['extracted_info'] as Map<String, dynamic>?;
+          final extInfo = (data['extracted_info'] ?? data['extracted_fields']) as Map<String, dynamic>?;
           
           if (extInfo != null) {
             setState(() {
@@ -150,6 +155,15 @@ class _CreateAuthorizationScreenState extends ConsumerState<CreateAuthorizationS
               }
               if (extInfo['chronic_condition'] != null && extInfo['chronic_condition'] != 'N/A') {
                 notesCtrl.text = 'Clinical Notes: Primary chronic condition - ${extInfo['chronic_condition']}.';
+              }
+              if (extInfo['member_id'] != null && extInfo['member_id'] != 'N/A') {
+                memberIdCtrl.text = extInfo['member_id'].toString();
+              }
+              if (extInfo['policy_number'] != null && extInfo['policy_number'] != 'N/A') {
+                groupCtrl.text = extInfo['policy_number'].toString();
+              }
+              if (extInfo['policy_holder'] != null && extInfo['policy_holder'] != 'N/A') {
+                nameCtrl.text = extInfo['policy_holder'].toString();
               }
             });
             
@@ -242,11 +256,16 @@ class _CreateAuthorizationScreenState extends ConsumerState<CreateAuthorizationS
                   final response = await dio.post(
                     AppConstants.priorAuthEndpoint,
                     data: formData,
+                    options: Options(
+                      headers: {
+                        'Authorization': 'Bearer dev-key-12345',
+                      },
+                    ),
                   );
 
                   if (response.statusCode == 200 && response.data != null) {
                     final data = response.data as Map<String, dynamic>;
-                    final extInfo = data['extracted_info'] as Map<String, dynamic>? ?? {};
+                    final extInfo = (data['extracted_info'] ?? data['extracted_fields']) as Map<String, dynamic>? ?? {};
                     
                     final apiDecision = data['decision']?.toString() ?? 'HUMAN_REVIEW';
                     final apiConfidence = (data['ml_confidence'] as num?)?.toDouble() ?? 0.85;
