@@ -1,0 +1,23 @@
+CLINICAL PRIOR AUTHORIZATION CONSULTATION NOTE
+--------------------------------------------------
+Patient Name: Eleanor Vance
+Date of Birth: 1985-06-14
+Member ID: MEM-987452
+MRN: MRN-33491
+
+DIAGNOSIS & CLINICAL HISTORY:
+ICD-10 Code: M54.50
+Diagnosis Description: Low back pain, unspecified (L4-L5 radiculopathy)
+Clinical Notes: Patient has 6+ weeks of intractable lower back pain radiating down left leg. Failed conservative therapy including 6 weeks of physical therapy and NSAIDs.
+
+PROCEDURE REQUEST:
+CPT Code: 72148
+Procedure Description: MRI Lumbar Spine without Contrast
+Scheduled Date: 2026-09-01
+Facility NPI: 1982736450
+
+INSURANCE & PROVIDER DETAILS:
+Insurance Plan: BlueCross BlueChoice PPO
+Group Number: GRP-4402
+Requesting Physician NPI: 1234567890
+Priority: Urgent

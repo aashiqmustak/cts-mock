@@ -1,0 +1,23 @@
+CLINICAL EVALUATION & PRIOR AUTHORIZATION REQUEST
+--------------------------------------------------
+Patient Name: Marcus Thorne
+Date of Birth: 1978-11-23
+Member ID: MEM-541298
+MRN: MRN-88204
+
+DIAGNOSIS INFORMATION:
+ICD-10 Code: M23.22
+Diagnosis Description: Derangement of meniscus due to old tear or injury, right knee
+Clinical Notes: Patient experiences severe right knee locking, joint line tenderness, and persistent swelling post traumatic sports injury. X-rays negative for advanced osteoarthritis.
+
+PROCEDURE DETAILS:
+CPT Code: 29881
+Procedure Description: Arthroscopy knee surgical with meniscectomy (medial or lateral)
+Scheduled Date: 2026-09-10
+Facility NPI: 1475829301
+
+COVERAGE & PHYSICIAN INFORMATION:
+Insurance Plan: Aetna Choice POS II
+Group Number: GRP-9915
+Requesting Physician NPI: 1841320956
+Priority: Routine

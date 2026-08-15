@@ -134,6 +134,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 children: [
                   const Spacer(),
 
+
                   // Navigation Actions & Version Tag
                   Padding(
                     padding: const EdgeInsets.only(bottom: 32.0),

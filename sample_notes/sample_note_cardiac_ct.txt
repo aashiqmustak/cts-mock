@@ -1,0 +1,23 @@
+EMERGENT PRIOR AUTHORIZATION CLINICAL NOTE
+--------------------------------------------------
+Patient Name: Sophia Rodriguez
+Date of Birth: 1964-03-08
+Member ID: MEM-773014
+MRN: MRN-55192
+
+DIAGNOSIS DETAILS:
+ICD-10 Code: I25.10
+Diagnosis Description: Atherosclerotic heart disease of native coronary artery
+Clinical Notes: Patient presents with atypical exertional chest pain and dyspnea. Moderate cardiovascular risk factors including hypertension and hyperlipidemia. Stress test inconclusive.
+
+REQUESTED PROCEDURE:
+CPT Code: 75574
+Procedure Description: Computed tomography coronary angiography (CCTA) with 3D image postprocessing
+Scheduled Date: 2026-08-25
+Facility NPI: 1029384756
+
+INSURANCE & PROVIDER:
+Insurance Plan: UnitedHealthcare Choice Plus
+Group Number: GRP-1048
+Requesting Physician NPI: 1659483720
+Priority: STAT
