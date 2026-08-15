@@ -11,6 +11,8 @@ import '../../../core/theme/app_colors.dart';
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
+  static bool hasShown = false;
+
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
@@ -66,6 +68,7 @@ class _SplashScreenState extends State<SplashScreen> {
   void _navigateToNextScreen() {
     if (_hasNavigated || !mounted) return;
     _hasNavigated = true;
+    SplashScreen.hasShown = true;
     context.go(RouteNames.login);
   }
 
@@ -129,54 +132,6 @@ class _SplashScreenState extends State<SplashScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Spacer(),
-
-                  // Logo
-                  Image.asset(
-                    'assets/images/priorx_logo.png',
-                    width: 120,
-                    height: 120,
-                    fit: BoxFit.contain,
-                  )
-                      .animate()
-                      .scale(begin: const Offset(0.5, 0.5), duration: 600.ms, curve: Curves.elasticOut)
-                      .fadeIn(duration: 400.ms),
-
-                  const SizedBox(height: 20),
-
-                  Text(
-                    'PriorX',
-                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -1,
-                          shadows: [
-                            const Shadow(
-                              blurRadius: 12,
-                              color: Colors.black54,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                  ).animate(delay: 300.ms).slideY(begin: 0.3).fadeIn(duration: 500.ms),
-
-                  const SizedBox(height: 8),
-
-                  Text(
-                    'AI-Powered Prior Authorization Platform',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white.withOpacity(0.9),
-                          letterSpacing: 0.5,
-                          shadows: [
-                            const Shadow(
-                              blurRadius: 8,
-                              color: Colors.black45,
-                              offset: Offset(0, 1),
-                            ),
-                          ],
-                        ),
-                  ).animate(delay: 450.ms).slideY(begin: 0.3).fadeIn(duration: 500.ms),
-
                   const Spacer(),
 
                   // Navigation Actions & Version Tag

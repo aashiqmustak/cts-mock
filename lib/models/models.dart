@@ -225,6 +225,23 @@ class AiDecision {
   }
 }
 
+// ─── Hospital Model ───────────────────────────────────────────────────────────
+class Hospital {
+  final String id;
+  final String name;
+  final String address;
+  final double? latitude;
+  final double? longitude;
+
+  const Hospital({
+    required this.id,
+    required this.name,
+    required this.address,
+    this.latitude,
+    this.longitude,
+  });
+}
+
 // ─── Patient Model ────────────────────────────────────────────────────────────
 class Patient {
   final String id;
@@ -283,6 +300,7 @@ class Doctor {
   final String npi;
   final String specialization;
   final String facility;
+  final String? hospitalId;
   final String email;
   final String phone;
   final int totalRequests;
@@ -300,6 +318,7 @@ class Doctor {
     required this.npi,
     required this.specialization,
     required this.facility,
+    this.hospitalId,
     required this.email,
     required this.phone,
     this.totalRequests = 0,

@@ -4,6 +4,16 @@
 -- Run this script in your Supabase SQL Editor
 -- ==========================================
 
+-- 0. HOSPITALS TABLE
+CREATE TABLE IF NOT EXISTS public.hospitals (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  address TEXT NOT NULL,
+  latitude NUMERIC,
+  longitude NUMERIC,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- 1. PROFILES TABLE (Linked to Supabase Auth)
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users ON DELETE CASCADE,
@@ -11,6 +21,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   email TEXT NOT NULL UNIQUE,
   role TEXT NOT NULL DEFAULT 'patient', -- 'administrator', 'doctor', 'insuranceReviewer', 'hospitalStaff', 'patient', 'adminHospital'
   facility TEXT,
+  hospital_id TEXT REFERENCES public.hospitals(id) ON DELETE SET NULL,
   specialization TEXT,
   license_number TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -31,7 +42,7 @@ CREATE TABLE IF NOT EXISTS public.patients (
   primary_physician_name TEXT,
   contact_phone TEXT NOT NULL,
   contact_email TEXT,
-  facility_id TEXT NOT NULL,
+  facility_id TEXT REFERENCES public.hospitals(id) ON DELETE SET NULL,
   total_authorizations INT DEFAULT 0,
   approved_authorizations INT DEFAULT 0,
   pending_authorizations INT DEFAULT 0,
@@ -49,6 +60,7 @@ CREATE TABLE IF NOT EXISTS public.doctors (
   npi TEXT NOT NULL,
   specialization TEXT NOT NULL,
   facility TEXT NOT NULL,
+  hospital_id TEXT REFERENCES public.hospitals(id) ON DELETE SET NULL,
   email TEXT NOT NULL,
   phone TEXT NOT NULL,
   total_requests INT DEFAULT 0,

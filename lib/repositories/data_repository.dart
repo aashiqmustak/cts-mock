@@ -63,6 +63,7 @@ class SyncedList<T> extends ListBase<T> {
 
 class DataRepository {
   DataRepository._() {
+    hospitals = SyncedList<Hospital>(onSync: syncHospitals);
     patients = SyncedList<Patient>(onSync: syncPatients);
     doctors = SyncedList<Doctor>(onSync: syncDoctors);
     authorizations = SyncedList<AuthorizationRequest>(onSync: syncAuthorizations);
@@ -78,6 +79,7 @@ class DataRepository {
   static final DataRepository instance = DataRepository._();
   final _supabase = Supabase.instance.client;
 
+  late final SyncedList<Hospital> hospitals;
   late final SyncedList<Patient> patients;
   late final SyncedList<Doctor> doctors;
   late final SyncedList<AuthorizationRequest> authorizations;
@@ -127,6 +129,7 @@ class DataRepository {
   }
 
   void _loadDefaults() {
+    if (hospitals.isEmpty) hospitals.addAll(_defaultHospitals);
     if (patients.isEmpty) patients.addAll(_defaultPatients);
     if (doctors.isEmpty) doctors.addAll(_defaultDoctors);
     if (authorizations.isEmpty) authorizations.addAll(_defaultAuthorizations);
@@ -142,6 +145,18 @@ class DataRepository {
   Future<void> loadFromSupabase() async {
     try {
       _supabaseAvailable = true;
+
+      // 0. Load Hospitals
+      try {
+        final res = await _supabase.from('hospitals').select();
+        hospitals.clear();
+        for (var item in res) {
+          hospitals.add(_hospitalFromJson(snakeToCamelCase(item)));
+        }
+      } catch (e) {
+        debugPrint("Error loading hospitals from Supabase: $e");
+        if (hospitals.isEmpty) hospitals.addAll(_defaultHospitals);
+      }
 
       // 1. Load Patients
       try {
@@ -270,6 +285,16 @@ class DataRepository {
     }
   }
 
+  Future<void> syncHospitals() async {
+    if (!_supabaseAvailable) return;
+    try {
+      final list = hospitals.map((h) => camelToSnakeCase(_hospitalToJson(h))).toList();
+      await _supabase.from('hospitals').upsert(list);
+    } catch (e) {
+      debugPrint("Failed to sync hospitals to Supabase: $e");
+    }
+  }
+
   Future<void> syncPatients() async {
     if (!_supabaseAvailable) return;
     try {
@@ -386,6 +411,7 @@ class DataRepository {
       'hospital_staff',
       'hospital_admins',
       'administrators',
+      'hospitals',
       'priorx_store',
     ];
 
@@ -402,6 +428,7 @@ class DataRepository {
     }
 
     // Clear local in-memory lists
+    hospitals.clear();
     patients.clear();
     doctors.clear();
     authorizations.clear();
@@ -415,6 +442,22 @@ class DataRepository {
   }
 
   // --- Json Mapper Helpers ---
+
+  static Map<String, dynamic> _hospitalToJson(Hospital h) => {
+    'id': h.id,
+    'name': h.name,
+    'address': h.address,
+    'latitude': h.latitude,
+    'longitude': h.longitude,
+  };
+
+  static Hospital _hospitalFromJson(dynamic json) => Hospital(
+    id: json['id'] ?? '',
+    name: json['name'] ?? '',
+    address: json['address'] ?? '',
+    latitude: (json['latitude'] as num?)?.toDouble(),
+    longitude: (json['longitude'] as num?)?.toDouble(),
+  );
 
   static Map<String, dynamic> _patientToJson(Patient p) => {
     'id': p.id,
@@ -472,6 +515,7 @@ class DataRepository {
     'npi': d.npi,
     'specialization': d.specialization,
     'facility': d.facility,
+    'hospitalId': d.hospitalId,
     'email': d.email,
     'phone': d.phone,
     'totalRequests': d.totalRequests,
@@ -490,6 +534,7 @@ class DataRepository {
     npi: json['npi'] ?? '',
     specialization: json['specialization'] ?? '',
     facility: json['facility'] ?? '',
+    hospitalId: json['hospitalId'],
     email: json['email'] ?? '',
     phone: json['phone'] ?? '',
     totalRequests: json['totalRequests'] ?? 0,
@@ -787,6 +832,31 @@ class DataRepository {
   );
 
 
+  // ─── Hospitals ────────────────────────────────────────────────────────────
+  static const List<Hospital> _defaultHospitals = [
+    const Hospital(
+      id: 'fac-001',
+      name: 'Metropolitan General Hospital',
+      address: '123 Main St, New York, NY',
+      latitude: 40.730610,
+      longitude: -73.935242,
+    ),
+    const Hospital(
+      id: 'fac-002',
+      name: 'City Medical Center',
+      address: '456 Oak Ave, Boston, MA',
+      latitude: 42.360082,
+      longitude: -71.058880,
+    ),
+    const Hospital(
+      id: 'fac-003',
+      name: 'Sunrise Health System',
+      address: '789 Pine Rd, Miami, FL',
+      latitude: 25.761680,
+      longitude: -80.191790,
+    ),
+  ];
+
   // ─── Patients ─────────────────────────────────────────────────────────────
   static const List<Patient> _defaultPatients = [
     const Patient(
@@ -888,6 +958,7 @@ class DataRepository {
     const Doctor(
       id: 'doc-001', name: 'Dr. Michael Johnson', npi: '1234567890',
       specialization: 'Cardiology', facility: 'Metropolitan General Hospital',
+      hospitalId: 'fac-001',
       email: 'dr.johnson@mediauth.ai', phone: '(555) 100-2001',
       totalRequests: 142, approvedRequests: 128, rejectedRequests: 9,
       approvalRate: 0.901, avgProcessingTimeMs: 3200,
@@ -897,6 +968,7 @@ class DataRepository {
     const Doctor(
       id: 'doc-002', name: 'Dr. Priya Sharma', npi: '2345678901',
       specialization: 'Oncology', facility: 'Metropolitan General Hospital',
+      hospitalId: 'fac-001',
       email: 'p.sharma@hospital.org', phone: '(555) 100-2002',
       totalRequests: 89, approvedRequests: 79, rejectedRequests: 7,
       approvalRate: 0.888, avgProcessingTimeMs: 4100,
@@ -906,6 +978,7 @@ class DataRepository {
     const Doctor(
       id: 'doc-003', name: 'Dr. James Wilson', npi: '3456789012',
       specialization: 'Nephrology', facility: 'City Medical Center',
+      hospitalId: 'fac-002',
       email: 'j.wilson@citymed.org', phone: '(555) 100-2003',
       totalRequests: 67, approvedRequests: 54, rejectedRequests: 10,
       approvalRate: 0.806, avgProcessingTimeMs: 2800,
@@ -915,6 +988,7 @@ class DataRepository {
     const Doctor(
       id: 'doc-004', name: 'Dr. Lisa Chen', npi: '4567890123',
       specialization: 'Cardiology', facility: 'City Medical Center',
+      hospitalId: 'fac-002',
       email: 'l.chen@citymed.org', phone: '(555) 100-2004',
       totalRequests: 98, approvedRequests: 91, rejectedRequests: 5,
       approvalRate: 0.929, avgProcessingTimeMs: 2400,
@@ -924,6 +998,7 @@ class DataRepository {
     const Doctor(
       id: 'doc-005', name: 'Dr. Karen Patel', npi: '5678901234',
       specialization: 'Neurology', facility: 'Sunrise Health System',
+      hospitalId: 'fac-003',
       email: 'k.patel@sunrise.org', phone: '(555) 100-2005',
       totalRequests: 113, approvedRequests: 99, rejectedRequests: 11,
       approvalRate: 0.876, avgProcessingTimeMs: 3600,
@@ -933,6 +1008,7 @@ class DataRepository {
     const Doctor(
       id: 'doc-006', name: 'Dr. Robert Hayes', npi: '6789012345',
       specialization: 'Orthopedic Surgery', facility: 'Metropolitan General Hospital',
+      hospitalId: 'fac-001',
       email: 'r.hayes@hospital.org', phone: '(555) 100-2006',
       totalRequests: 205, approvedRequests: 187, rejectedRequests: 14,
       approvalRate: 0.912, avgProcessingTimeMs: 2100,

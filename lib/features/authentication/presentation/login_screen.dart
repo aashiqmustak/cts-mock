@@ -31,6 +31,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
   String? _errorMsg;
   late AnimationController _bgAnimationCtrl;
 
+  void _clearError() {
+    if (_errorMsg != null) {
+      setState(() => _errorMsg = null);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -38,10 +44,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
       vsync: this,
       duration: const Duration(seconds: 20),
     )..repeat(reverse: true);
+    _emailCtrl.addListener(_clearError);
+    _passCtrl.addListener(_clearError);
   }
 
   @override
   void dispose() {
+    _emailCtrl.removeListener(_clearError);
+    _passCtrl.removeListener(_clearError);
     _emailCtrl.dispose();
     _passCtrl.dispose();
     _bgAnimationCtrl.dispose();

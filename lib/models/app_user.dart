@@ -8,6 +8,7 @@ class AppUser {
   final UserRole role;
   final String? avatarUrl;
   final String? facility;       // Hospital/payer org name
+  final String? hospitalId;     // Linked hospital ID
   final String? specialization; // For doctors
   final String? licenseNumber;  // NPI for doctors
   final bool   isActive;
@@ -21,6 +22,7 @@ class AppUser {
     required this.role,
     this.avatarUrl,
     this.facility,
+    this.hospitalId,
     this.specialization,
     this.licenseNumber,
     this.isActive = true,
@@ -46,6 +48,7 @@ class AppUser {
     String? name,
     String? avatarUrl,
     String? facility,
+    String? hospitalId,
     String? specialization,
     bool? isActive,
     DateTime? lastLoginAt,
@@ -57,6 +60,7 @@ class AppUser {
       role: role,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       facility: facility ?? this.facility,
+      hospitalId: hospitalId ?? this.hospitalId,
       specialization: specialization ?? this.specialization,
       licenseNumber: licenseNumber,
       isActive: isActive ?? this.isActive,
@@ -71,6 +75,7 @@ class AppUser {
     'email': email,
     'role': role.name,
     'facility': facility,
+    'hospitalId': hospitalId,
     'specialization': specialization,
     'licenseNumber': licenseNumber,
     'isActive': isActive,
@@ -86,6 +91,7 @@ class AppUser {
       role: UserRole.values.firstWhere((r) => r.name == json['role']),
       avatarUrl: json['avatarUrl'] as String?,
       facility: json['facility'] as String?,
+      hospitalId: json['hospitalId'] as String?,
       specialization: json['specialization'] as String?,
       licenseNumber: json['licenseNumber'] as String?,
       isActive: json['isActive'] as bool? ?? true,

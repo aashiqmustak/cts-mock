@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/user_role.dart';
@@ -33,19 +34,36 @@ import '../../features/error/error_404_screen.dart';
 import '../../shared/widgets/app_shell.dart';
 import '../../features/task_flow/presentation/task_flow_screen.dart';
 
+class RouterRefreshListenable extends ChangeNotifier {
+  void refresh() {
+    notifyListeners();
+  }
+}
+
 // ─── Router Provider ──────────────────────────────────────────────────────────
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authProvider);
+  final refreshListenable = RouterRefreshListenable();
+  ref.listen<AuthState>(
+    authProvider,
+    (_, __) => refreshListenable.refresh(),
+  );
 
   return GoRouter(
     initialLocation: RouteNames.splash,
+    refreshListenable: refreshListenable,
     debugLogDiagnostics: false,
     redirect: (context, state) {
+      final authState = ref.read(authProvider);
       final isAuthenticated = authState.isAuthenticated;
       final isOnAuthScreen = state.matchedLocation == RouteNames.login ||
           state.matchedLocation == RouteNames.forgotPassword ||
           state.matchedLocation == RouteNames.register ||
           state.matchedLocation == RouteNames.splash;
+
+      // Skip splash screen if it has already been shown once in this session
+      if (state.matchedLocation == RouteNames.splash && SplashScreen.hasShown) {
+        return isAuthenticated ? RouteNames.dashboard : RouteNames.login;
+      }
 
       // Not authenticated → go to login
       if (!isAuthenticated && !isOnAuthScreen) return RouteNames.login;

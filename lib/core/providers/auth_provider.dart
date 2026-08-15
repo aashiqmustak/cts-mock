@@ -56,6 +56,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
     
     final facility = meta['facility'] as String?;
+    final hospitalId = (meta['hospitalId'] ?? meta['hospital_id']) as String?;
     final specialization = meta['specialization'] as String?;
     final licenseNumber = meta['licenseNumber'] as String?;
     
@@ -65,6 +66,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       email: email,
       role: role,
       facility: facility,
+      hospitalId: hospitalId,
       specialization: specialization,
       licenseNumber: licenseNumber,
       isActive: true,
@@ -94,9 +96,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// Sign in with email + password using Supabase.
   Future<bool> signIn(String email, String password) async {
     state = state.copyWith(status: AuthStatus.loading);
+    final trimmedEmail = email.trim();
     try {
       final response = await _supabase.auth.signInWithPassword(
-        email: email.trim(),
+        email: trimmedEmail,
         password: password,
       );
       if (response.user != null) {
@@ -107,9 +110,122 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return true;
       }
     } catch (e) {
-      state = AuthState(
+      final errorStr = e.toString().toLowerCase();
+      // If it's a specific credentials error, don't fall back to local mock
+      if (errorStr.contains('invalid login credentials') || 
+          errorStr.contains('invalid email') ||
+          errorStr.contains('invalid password') ||
+          errorStr.contains('user not found')) {
+        state = const AuthState(
+          status: AuthStatus.error,
+          errorMessage: 'Invalid email or password. Please check your credentials.',
+        );
+        return false;
+      }
+
+      // For network/configuration errors, fall back to checking our local mock database
+      final emailLower = trimmedEmail.toLowerCase();
+      
+      // 1. Check Hardcoded Mock Accounts (admin, reviewer, staff)
+      if (emailLower == 'admin@mediauth.ai') {
+        state = AuthState(
+          status: AuthStatus.authenticated,
+          user: AppUser(
+            id: 'usr-admin',
+            name: 'System Admin',
+            email: 'admin@mediauth.ai',
+            role: UserRole.administrator,
+            isActive: true,
+            createdAt: DateTime.now(),
+          ),
+        );
+        return true;
+      } else if (emailLower == 'reviewer@mediauth.ai') {
+        state = AuthState(
+          status: AuthStatus.authenticated,
+          user: AppUser(
+            id: 'usr-reviewer',
+            name: 'John Reviewer',
+            email: 'reviewer@mediauth.ai',
+            role: UserRole.insuranceReviewer,
+            isActive: true,
+            createdAt: DateTime.now(),
+          ),
+        );
+        return true;
+      } else if (emailLower == 'staff@mediauth.ai') {
+        state = AuthState(
+          status: AuthStatus.authenticated,
+          user: AppUser(
+            id: 'usr-staff',
+            name: 'Sarah Jenkins',
+            email: 'staff@mediauth.ai',
+            role: UserRole.adminHospital,
+            facility: 'Metropolitan General Hospital',
+            hospitalId: 'fac-001',
+            isActive: true,
+            createdAt: DateTime.now(),
+          ),
+        );
+        return true;
+      }
+
+      // 2. Check Mock Doctor Database
+      Doctor? foundDoctor;
+      for (final d in DataRepository.instance.doctors) {
+        if (d.email.toLowerCase() == emailLower) {
+          foundDoctor = d;
+          break;
+        }
+      }
+      if (foundDoctor != null) {
+        state = AuthState(
+          status: AuthStatus.authenticated,
+          user: AppUser(
+            id: foundDoctor.id,
+            name: foundDoctor.name,
+            email: foundDoctor.email,
+            role: UserRole.doctor,
+            facility: foundDoctor.facility,
+            hospitalId: foundDoctor.hospitalId,
+            specialization: foundDoctor.specialization,
+            licenseNumber: foundDoctor.npi,
+            isActive: true,
+            createdAt: DateTime.now(),
+          ),
+        );
+        return true;
+      }
+
+      // 3. Check Mock Patient Database
+      Patient? foundPatient;
+      for (final p in DataRepository.instance.patients) {
+        if (p.contactEmail?.toLowerCase() == emailLower) {
+          foundPatient = p;
+          break;
+        }
+      }
+      if (foundPatient != null) {
+        state = AuthState(
+          status: AuthStatus.authenticated,
+          user: AppUser(
+            id: foundPatient.id,
+            name: foundPatient.name,
+            email: foundPatient.contactEmail ?? trimmedEmail,
+            role: UserRole.patient,
+            facility: 'Metropolitan General Hospital',
+            hospitalId: foundPatient.facilityId,
+            isActive: true,
+            createdAt: DateTime.now(),
+          ),
+        );
+        return true;
+      }
+
+      // 4. Default Connection Error message if credentials don't match any mock user either
+      state = const AuthState(
         status: AuthStatus.error,
-        errorMessage: e.toString().replaceFirst('AuthException: ', ''),
+        errorMessage: 'Network error or invalid credentials. To test offline, please use a mock account like dr.johnson@mediauth.ai or admin@mediauth.ai.',
       );
     }
     return false;
@@ -145,6 +261,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (user != null) {
         final userId = user.id;
 
+        // Map facility name to facility ID (hospitals mapping helper)
+        String? hospitalId;
+        if (facility != null) {
+          if (facility.toLowerCase().contains('metro')) {
+            hospitalId = 'fac-001';
+          } else if (facility.toLowerCase().contains('city')) {
+            hospitalId = 'fac-002';
+          } else if (facility.toLowerCase().contains('sunrise')) {
+            hospitalId = 'fac-003';
+          } else {
+            hospitalId = facility;
+          }
+        }
+
         // 1. Create / Update Profiles row
         try {
           await _supabase.from('profiles').upsert({
@@ -153,6 +283,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
             'email': email.trim(),
             'role': role.name,
             if (facility != null) 'facility': facility,
+            if (hospitalId != null) 'hospital_id': hospitalId,
             if (specialization != null) 'specialization': specialization,
             if (licenseNumber != null) 'license_number': licenseNumber,
             if (phone != null) 'phone': phone,
@@ -168,7 +299,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
                 'id': userId,
                 'name': name,
                 'contact_email': email.trim(),
-                'facility_id': facility ?? 'FAC-001',
+                'facility_id': hospitalId ?? 'fac-001',
                 'date_of_birth': '1990-01-01',
                 'gender': 'Unspecified',
                 'insurance_id': 'INS-PENDING',
@@ -186,6 +317,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
                 'npi': licenseNumber ?? 'NPI-PENDING',
                 'specialization': specialization ?? 'General Medicine',
                 'facility': facility ?? 'Metropolitan General Hospital',
+                'hospital_id': hospitalId ?? 'fac-001',
                 'phone': phone ?? 'N/A',
                 'is_active': true,
               });
@@ -207,6 +339,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
                 'name': name,
                 'email': email.trim(),
                 'facility': facility ?? 'Metropolitan General Hospital',
+                'hospital_id': hospitalId ?? 'fac-001',
                 'phone': phone,
               });
               break;
@@ -217,6 +350,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
                 'name': name,
                 'email': email.trim(),
                 'facility': facility ?? 'Metropolitan General Hospital',
+                'hospital_id': hospitalId ?? 'fac-001',
                 'phone': phone,
               });
               break;
@@ -279,11 +413,25 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }) async {
     if (state.user != null) {
       try {
+        String? localHospId;
+        if (facility != null) {
+          if (facility.toLowerCase().contains('metro')) {
+            localHospId = 'fac-001';
+          } else if (facility.toLowerCase().contains('city')) {
+            localHospId = 'fac-002';
+          } else if (facility.toLowerCase().contains('sunrise')) {
+            localHospId = 'fac-003';
+          } else {
+            localHospId = facility;
+          }
+        }
+
         final response = await _supabase.auth.updateUser(
           UserAttributes(
             data: {
               'name': name,
               'facility': facility,
+              'hospitalId': localHospId,
               'specialization': specialization,
               'licenseNumber': licenseNumber,
             },
@@ -297,6 +445,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
         }
       } catch (e) {
         // Fallback to local update if Supabase fails or isn't fully configured
+        String? localHospId;
+        if (facility != null) {
+          if (facility.toLowerCase().contains('metro')) {
+            localHospId = 'fac-001';
+          } else if (facility.toLowerCase().contains('city')) {
+            localHospId = 'fac-002';
+          } else if (facility.toLowerCase().contains('sunrise')) {
+            localHospId = 'fac-003';
+          } else {
+            localHospId = facility;
+          }
+        }
+
         final fullUser = AppUser(
           id: state.user!.id,
           name: name,
@@ -304,6 +465,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           role: state.user!.role,
           avatarUrl: state.user!.avatarUrl,
           facility: facility,
+          hospitalId: localHospId,
           specialization: specialization,
           licenseNumber: licenseNumber,
           isActive: state.user!.isActive,
