@@ -131,19 +131,6 @@ class _SplashScreenState extends State<SplashScreen> {
                 children: [
                   const Spacer(),
 
-                  // Logo
-                  Image.asset(
-                    'assets/images/priorx_logo.png',
-                    width: 120,
-                    height: 120,
-                    fit: BoxFit.contain,
-                  )
-                      .animate()
-                      .scale(begin: const Offset(0.5, 0.5), duration: 600.ms, curve: Curves.elasticOut)
-                      .fadeIn(duration: 400.ms),
-
-                  const SizedBox(height: 20),
-
                   Text(
                     'PriorX',
                     style: Theme.of(context).textTheme.headlineLarge?.copyWith(
